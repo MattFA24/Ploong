@@ -16,6 +16,13 @@ final class RenderComponent: GKComponent {
         super.init()
     }
 
+    init(textureName: String, size: CGSize, zPosition: CGFloat = 0) {
+        let texture = SKTexture(imageNamed: textureName)
+        self.node = SKSpriteNode(texture: texture, color: .clear, size: size)
+        self.node.zPosition = zPosition
+        super.init()
+    }
+
     required init?(coder: NSCoder) {
         self.node = SKSpriteNode(color: .white, size: CGSize(width: 1, height: 1))
         super.init(coder: coder)

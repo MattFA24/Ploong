@@ -29,12 +29,65 @@ final class GameLoopScene: SKScene {
     private weak var pauseModal: SKShapeNode?
     private weak var countdownLabel: SKLabelNode?
 
+    private let renderSystem = RenderSystem()
+    private var entities: [GKEntity] = []
+
     override func sceneDidLoad() {
         super.sceneDidLoad()
         backgroundColor = .white
         AudioManager.shared.playGameBgm()
+        setupWorld()
         buildPauseOverlay()
         stateMachine.enter(PlayingState.self)
+    }
+
+    private func setupWorld() {
+        let background = SpriteEntity(
+            textureName: "game_bg",
+            size: size,
+            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
+            zPosition: -10
+        )
+
+        let platformSize = scaledSize(for: "mid_platform", width: size.width)
+        let platform = SpriteEntity(
+            textureName: "mid_platform",
+            size: platformSize,
+            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
+            zPosition: 5
+        )
+
+        let roofSize = scaledSize(for: "tiles_roof", width: size.width)
+        let topRoof = SpriteEntity(
+            textureName: "tiles_roof",
+            size: roofSize,
+            position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5),
+            zPosition: 6
+        )
+
+        let bottomRoof = SpriteEntity(
+            textureName: "tiles_roof",
+            size: roofSize,
+            position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5),
+            zPosition: 6
+        )
+
+        entities = [background, platform, topRoof, bottomRoof]
+        for entity in entities {
+            renderSystem.addEntity(entity)
+        }
+        renderSystem.addToScene(self)
+    }
+
+    private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {
+        let texture = SKTexture(imageNamed: textureName)
+        let textureSize = texture.size()
+        guard textureSize.width > 0, textureSize.height > 0 else {
+            return CGSize(width: width, height: 1)
+        }
+
+        let scale = width / textureSize.width
+        return CGSize(width: width, height: textureSize.height * scale)
     }
 
     override func keyDown(with event: NSEvent) {

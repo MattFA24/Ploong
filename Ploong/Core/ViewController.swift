@@ -7,40 +7,31 @@
 
 import Cocoa
 import SpriteKit
-import GameplayKit
 
-class ViewController: NSViewController {
+final class ViewController: NSViewController {
+    @IBOutlet private var skView: SKView!
+    private let targetSceneSize = CGSize(width: 1280, height: 800)
 
-    @IBOutlet var skView: SKView!
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        // Load 'GameScene.sks' as a GKScene. This provides gameplay related content
-        // including entities and graphs.
-        if let scene = GKScene(fileNamed: "GameScene") {
-            
-            // Get the SKScene from the loaded GKScene
-            if let sceneNode = scene.rootNode as! GameScene? {
-                
-                // Copy gameplay related content over to the scene
-                sceneNode.entities = scene.entities
-                sceneNode.graphs = scene.graphs
-                
-                // Set the scale mode to scale to fit the window
-                sceneNode.scaleMode = .aspectFill
-                
-                // Present the scene
-                if let view = self.skView {
-                    view.presentScene(sceneNode)
-                    
-                    view.ignoresSiblingOrder = true
-                    
-                    view.showsFPS = true
-                    view.showsNodeCount = true
-                }
-            }
+
+        let scene = MenuScene(size: targetSceneSize)
+        scene.scaleMode = .aspectFit
+
+        skView.presentScene(scene)
+        skView.ignoresSiblingOrder = true
+    }
+
+    override func viewDidAppear() {
+        super.viewDidAppear()
+
+        guard let window = view.window else {
+            return
         }
+
+        let minSize = NSSize(width: targetSceneSize.width, height: targetSceneSize.height)
+        window.setContentSize(minSize)
+        window.contentMinSize = minSize
+        window.contentAspectRatio = minSize
     }
 }
-

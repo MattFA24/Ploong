@@ -14,6 +14,7 @@ final class CharactersScene: SKScene {
     }
 
     private var didSetupLayout = false
+    private var backgroundNodes: [SKSpriteNode] = []
     private var characterNodes: [SKShapeNode] = []
     private var characterLabels: [SKLabelNode] = []
     private var selectedIndex = 2
@@ -37,6 +38,7 @@ final class CharactersScene: SKScene {
 
     private func buildLayout() {
         addScrollingBackground()
+        applyBackgroundBrightness(loadBackgroundBrightness())
 
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
@@ -173,15 +175,21 @@ final class CharactersScene: SKScene {
             return
         }
 
+        let speed: CGFloat = 18
         let scale = max(size.width / textureSize.width, size.height / textureSize.height)
         let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / 18)
+        let duration = TimeInterval(scaledSize.width / speed)
+
+        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
+        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
 
         let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
         let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
 
-        bg1.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: bg1.position.y)
+        let centerX = size.width * 0.5
+        let centerY = size.height * 0.5
+        bg1.position = CGPoint(x: centerX + offset, y: centerY)
+        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
 
         bg1.zPosition = -2
         bg2.zPosition = -2
@@ -195,6 +203,22 @@ final class CharactersScene: SKScene {
 
         addChild(bg1)
         addChild(bg2)
+        backgroundNodes = [bg1, bg2]
+    }
+
+    private func applyBackgroundBrightness(_ value: CGFloat) {
+        let clamped = max(0, min(1, value))
+        for node in backgroundNodes {
+            node.alpha = 1
+            node.color = .black
+            node.colorBlendFactor = 1 - clamped
+        }
+    }
+
+    private func loadBackgroundBrightness() -> CGFloat {
+        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
+        let value = stored?.doubleValue ?? 0.5
+        return CGFloat(value)
     }
 
     override func mouseDown(with event: NSEvent) {

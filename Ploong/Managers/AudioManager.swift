@@ -11,6 +11,7 @@ final class AudioManager {
     static let shared = AudioManager()
 
     private var menuPlayer: AVAudioPlayer?
+    private var gamePlayer: AVAudioPlayer?
 
     private init() {}
 
@@ -37,5 +38,30 @@ final class AudioManager {
     func stopMenuBgm() {
         menuPlayer?.stop()
         menuPlayer = nil
+    }
+
+    func playGameBgm() {
+        if gamePlayer?.isPlaying == true {
+            return
+        }
+
+        guard let url = Bundle.main.url(forResource: "bgm_main_battle", withExtension: "mp3") else {
+            return
+        }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.numberOfLoops = -1
+            player.prepareToPlay()
+            player.play()
+            gamePlayer = player
+        } catch {
+            gamePlayer = nil
+        }
+    }
+
+    func stopGameBgm() {
+        gamePlayer?.stop()
+        gamePlayer = nil
     }
 }

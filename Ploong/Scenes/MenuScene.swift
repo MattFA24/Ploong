@@ -62,7 +62,7 @@ final class MenuScene: SKScene {
         playButton.name = "play_button"
         playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
         playButton.zPosition = 1
-        scaleSprite(playButton, maxWidth: size.width * 0.70, maxHeight: size.height * 0.2)
+        scaleSprite(playButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
         addChild(playButton)
 
         let characterButton = SKSpriteNode(imageNamed: "characters_button")
@@ -174,12 +174,24 @@ final class MenuScene: SKScene {
         // TODO: hook up routing logic when scenes are ready.
         switch action {
         case .play:
-            break
+            presentCalibration()
         case .character:
             presentCharacters()
         case .settings:
             presentSettings()
         }
+    }
+
+    private func presentCalibration() {
+        guard let view = view else {
+            return
+        }
+
+        AudioManager.shared.stopMenuBgm()
+
+        let scene = CalibrationScene(size: size)
+        scene.scaleMode = scaleMode
+        view.presentScene(scene)
     }
 
     private func presentCharacters() {

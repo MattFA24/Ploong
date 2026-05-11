@@ -55,23 +55,38 @@ final class MenuScene: SKScene {
         highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.68)
         addChild(highscore)
 
-        let playButton = MenuButtonNode(action: .play,
-                                        size: CGSize(width: 420, height: 140),
-                                        fontSize: 72)
+        let buttonMaxWidth = size.width * 0.36
+        let buttonMaxHeight = size.height * 0.09
+
+        let playButton = SKSpriteNode(imageNamed: "play_button")
+        playButton.name = "play_button"
         playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
+        playButton.zPosition = 1
+        scaleSprite(playButton, maxWidth: size.width * 0.70, maxHeight: size.height * 0.2)
         addChild(playButton)
 
-        let characterButton = MenuButtonNode(action: .character,
-                                             size: CGSize(width: 280, height: 80),
-                                             fontSize: 28)
+        let characterButton = SKSpriteNode(imageNamed: "characters_button")
+        characterButton.name = "characters_button"
         characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.34)
+        characterButton.zPosition = 1
+        scaleSprite(characterButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
         addChild(characterButton)
 
-        let settingsButton = MenuButtonNode(action: .settings,
-                                            size: CGSize(width: 260, height: 70),
-                                            fontSize: 26)
+        let settingsButton = SKSpriteNode(imageNamed: "settings_button")
+        settingsButton.name = "settings_button"
         settingsButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.24)
+        settingsButton.zPosition = 1
+        scaleSprite(settingsButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
         addChild(settingsButton)
+    }
+
+    private func scaleSprite(_ sprite: SKSpriteNode, maxWidth: CGFloat, maxHeight: CGFloat) {
+        guard sprite.size.width > 0, sprite.size.height > 0 else {
+            return
+        }
+
+        let scale = min(maxWidth / sprite.size.width, maxHeight / sprite.size.height)
+        sprite.setScale(scale)
     }
 
     private func addScrollingBackground() {
@@ -81,15 +96,21 @@ final class MenuScene: SKScene {
             return
         }
 
+        let speed: CGFloat = 18
         let scale = max(size.width / textureSize.width, size.height / textureSize.height)
         let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / 18)
+        let duration = TimeInterval(scaledSize.width / speed)
+
+        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
+        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
 
         let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
         let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
 
-        bg1.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: bg1.position.y)
+        let centerX = size.width * 0.5
+        let centerY = size.height * 0.5
+        bg1.position = CGPoint(x: centerX + offset, y: centerY)
+        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
 
         bg1.zPosition = -2
         bg2.zPosition = -2
@@ -132,12 +153,21 @@ final class MenuScene: SKScene {
 
     private func handleSelection(at location: CGPoint) {
         let nodesAtPoint = nodes(at: location)
-        let button = nodesAtPoint.first { $0 is MenuButtonNode } as? MenuButtonNode
-        guard let action = button?.action else {
+
+        if nodesAtPoint.contains(where: { $0.name == "play_button" }) {
+            route(.play)
             return
         }
 
-        route(action)
+        if nodesAtPoint.contains(where: { $0.name == "characters_button" }) {
+            route(.character)
+            return
+        }
+
+        if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
+            route(.settings)
+            return
+        }
     }
 
     private func route(_ action: MenuAction) {
@@ -170,31 +200,5 @@ final class MenuScene: SKScene {
         let scene = SettingsScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
-    }
-}
-
-private final class MenuButtonNode: SKShapeNode {
-    let action: MenuScene.MenuAction
-
-    init(action: MenuScene.MenuAction, size: CGSize, fontSize: CGFloat) {
-        self.action = action
-        super.init()
-
-        let rect = CGRect(origin: CGPoint(x: -size.width * 0.5, y: -size.height * 0.5),
-                          size: size)
-        path = CGPath(roundedRect: rect, cornerWidth: size.height * 0.35, cornerHeight: size.height * 0.35, transform: nil)
-        fillColor = NSColor(white: 0.7, alpha: 1)
-        strokeColor = NSColor.clear
-
-        let label = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        label.text = action.rawValue.uppercased()
-        label.fontSize = fontSize
-        label.fontColor = .black
-        label.verticalAlignmentMode = .center
-        addChild(label)
-    }
-
-    required init?(coder: NSCoder) {
-        return nil
     }
 }

@@ -1,0 +1,38 @@
+{
+  "coins": 34,
+  "characters": [
+    {
+      "name": "Joy",
+      "subtitle": "your daily joyful gurl",
+      "color": "#4F63BD",
+      "locked": false
+    },
+    {
+      "name": "TiuTiu",
+      "subtitle": "calm and ready",
+      "color": "#BD4F4F",
+      "locked": false
+    },
+    {
+      "name": "???-1",
+      "subtitle": "locked",
+      "color": "#333333",
+      "locked": true,
+      "price": 20
+    },
+    {
+      "name": "???-2",
+      "subtitle": "locked",
+      "color": "#333333",
+      "locked": true,
+      "price": 20
+    },
+    {
+      "name": "???-3",
+      "subtitle": "locked",
+      "color": "#333333",
+      "locked": true,
+      "price": 20
+    }
+  ]
+}

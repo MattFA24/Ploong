@@ -15,7 +15,7 @@ final class MenuScene: SKScene {
     }
 
     private var didSetupLayout = false
-    private var bgmNode: SKAudioNode?
+    private var backgroundNodes: [SKSpriteNode] = []
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -33,7 +33,8 @@ final class MenuScene: SKScene {
 
     private func buildLayout() {
         addScrollingBackground()
-        addMenuBgm()
+        applyBackgroundBrightness(loadBackgroundBrightness())
+        AudioManager.shared.playMenuBgm()
 
         let title = SKSpriteNode(imageNamed: "menu_logo")
         title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.78)
@@ -102,19 +103,26 @@ final class MenuScene: SKScene {
 
         addChild(bg1)
         addChild(bg2)
+        backgroundNodes = [bg1, bg2]
+    }
+
+    private func applyBackgroundBrightness(_ value: CGFloat) {
+        let clamped = max(0, min(1, value))
+        for node in backgroundNodes {
+            node.alpha = 1
+            node.color = .black
+            node.colorBlendFactor = 1 - clamped
+        }
+    }
+
+    private func loadBackgroundBrightness() -> CGFloat {
+        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
+        let value = stored?.doubleValue ?? 0.5
+        return CGFloat(value)
     }
 
     private func addMenuBgm() {
-        if bgmNode != nil {
-            return
-        }
-
-        let node = SKAudioNode(fileNamed: "menu_bgm.mp3")
-        node.autoplayLooped = true
-        node.isPositional = false
-        node.zPosition = -10
-        addChild(node)
-        bgmNode = node
+        // BGM is handled by AudioManager.
     }
 
     override func mouseDown(with event: NSEvent) {

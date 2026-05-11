@@ -11,6 +11,8 @@ final class SettingsScene: SKScene {
     private var didSetupLayout = false
     private var sliders: [SliderNode] = []
     private weak var activeSlider: SliderNode?
+    private var backgroundNodes: [SKSpriteNode] = []
+    private weak var brightnessSlider: SliderNode?
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -28,6 +30,7 @@ final class SettingsScene: SKScene {
 
     private func buildLayout() {
         addScrollingBackground()
+        applyBackgroundBrightness(loadBackgroundBrightness())
 
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
@@ -81,10 +84,16 @@ final class SettingsScene: SKScene {
         let rowSpacing: CGFloat = 70
 
         sliders = [
-            makeSlider(title: "Background brightness", length: sliderLength, value: 0.55),
+            makeSlider(title: "Background brightness", length: sliderLength, value: loadBackgroundBrightness()),
             makeSlider(title: "Music", length: sliderLength, value: 0.65),
             makeSlider(title: "SFX", length: sliderLength, value: 0.6)
         ]
+
+        brightnessSlider = sliders.first
+        brightnessSlider?.onValueChange = { [weak self] value in
+            self?.storeBackgroundBrightness(value)
+            self?.applyBackgroundBrightness(value)
+        }
 
         for (index, slider) in sliders.enumerated() {
             let y = firstRowY - CGFloat(index) * rowSpacing
@@ -142,6 +151,26 @@ final class SettingsScene: SKScene {
 
         addChild(bg1)
         addChild(bg2)
+        backgroundNodes = [bg1, bg2]
+    }
+
+    private func applyBackgroundBrightness(_ value: CGFloat) {
+        let clamped = max(0, min(1, value))
+        for node in backgroundNodes {
+            node.alpha = 1
+            node.color = .black
+            node.colorBlendFactor = 1 - clamped
+        }
+    }
+
+    private func loadBackgroundBrightness() -> CGFloat {
+        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
+        let value = stored?.doubleValue ?? 0.5
+        return CGFloat(value)
+    }
+
+    private func storeBackgroundBrightness(_ value: CGFloat) {
+        UserDefaults.standard.set(value, forKey: "backgroundBrightness")
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -234,6 +263,7 @@ private final class SliderNode: SKNode {
             updateVisuals()
         }
     }
+    var onValueChange: ((CGFloat) -> Void)?
 
     init(length: CGFloat, thickness: CGFloat = 8) {
         self.length = length
@@ -273,6 +303,7 @@ private final class SliderNode: SKNode {
     func updateValue(for localX: CGFloat) {
         let clampedX = max(-length * 0.5, min(length * 0.5, localX))
         value = (clampedX + length * 0.5) / length
+        onValueChange?(value)
     }
 
     private func updateVisuals() {

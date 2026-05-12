@@ -5,7 +5,6 @@
 //  Created by Matthew Fernando Anggrian on 12/05/26.
 //
 
-
 import SpriteKit
 import GameplayKit
 
@@ -18,6 +17,9 @@ final class GateEntity: GameEntity {
         render.node.position = position
         render.node.zPosition = 5
         render.node.name = "gate"
+        
+        // CRUCIAL FIX: Link the node back to this entity so CollisionManager can find the math operation
+        render.node.entity = self
         
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
         lbl.text = "\(gateData.text)\(Int(gateData.value))"

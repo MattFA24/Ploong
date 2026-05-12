@@ -79,6 +79,11 @@ final class GameLoopScene: SKScene {
             if stateMachine.currentState is PlayingState {
                 movementSystem.update(deltaTime: deltaTime)
                 shootingSystem.update(deltaTime: deltaTime)
+                
+                // Keep the spawner aware of current player power so it scales enemies correctly!
+                if let stats = player.component(ofType: StatsComponent.self) {
+                    spawnerSystem.currentPlayerPower = stats.power
+                }
                 spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
                 
                 // 2. Clean up destroyed entities to prevent memory leaks!
@@ -92,7 +97,6 @@ final class GameLoopScene: SKScene {
         }
 
         private func setupWorld() {
-            // [Keep your original Background, Platform, Roof setup code exactly the same...]
             let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)
             let platformSize = scaledSize(for: "mid_platform", width: size.width)
             let platform = SpriteEntity(textureName: "mid_platform", size: platformSize, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: 5)

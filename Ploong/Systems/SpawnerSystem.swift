@@ -5,12 +5,10 @@
 //  Created by Matthew Fernando Anggrian on 12/05/26.
 //
 
-
 import SpriteKit
 import GameplayKit
 
 final class SpawnerSystem {
-    // Start at 4.0 so it triggers the very first frame!
     private var timeSinceLastSpawn: TimeInterval = 4.0
     private var waveCount = 0
     private var timeSurvived: TimeInterval = 0
@@ -41,16 +39,17 @@ final class SpawnerSystem {
         
         let lane0Y = size.height / 2 - GameConstants.laneGap / 2
         let lane1Y = size.height / 2 + GameConstants.laneGap / 2
+        let gateStartX = size.width + 60
         
-        let gate0Entity = GateEntity(position: CGPoint(x: size.width + 60, y: lane0Y), gateData: GateComponent(type: gate0.type, value: gate0.value, text: gate0.text, waveID: waveID, lane: 0))
-        let gate1Entity = GateEntity(position: CGPoint(x: size.width + 60, y: lane1Y), gateData: GateComponent(type: gate1.type, value: gate1.value, text: gate1.text, waveID: waveID, lane: 1))
+        let gate0Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane0Y), gateData: GateComponent(type: gate0.type, value: gate0.value, text: gate0.text, waveID: waveID, lane: 0))
+        let gate1Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane1Y), gateData: GateComponent(type: gate1.type, value: gate1.value, text: gate1.text, waveID: waveID, lane: 1))
         
         // Notify the scene to render and retain the gates
         onEntitySpawned?(gate0Entity)
         onEntitySpawned?(gate1Entity)
         
-        scrollOff(node: gate0Entity.component(ofType: RenderComponent.self)!.node, width: size.width)
-        scrollOff(node: gate1Entity.component(ofType: RenderComponent.self)!.node, width: size.width)
+        scrollOff(node: gate0Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
+        scrollOff(node: gate1Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
         
         let g0 = min(applyGate(gate0, to: optimalPower), GameConstants.powerCap)
         let g1 = min(applyGate(gate1, to: optimalPower), GameConstants.powerCap)
@@ -70,27 +69,21 @@ final class SpawnerSystem {
         let baseEnemyHP = max(rawBaseHP, minHP)
         let count = poopCount()
         
-        let gateTravel = Double((size.width + 60 - GameConstants.playerX) / GameConstants.objectSpeed)
-        let enemyDelay = gateTravel + 0.5
+        // Spawn enemies safely behind the gates instead of using a delayed thread
+        let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
+        let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
+        let baseEnemyStartX = size.width + 400 // Enemies start trailing behind the gates
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + enemyDelay) { [weak self] in
-            guard let self = self else { return }
-            let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
-            let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
-            
-            if isDoubleLane {
-                self.spawnLine(laneY: lane0Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, screenWidth: size.width)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                    self?.spawnLine(laneY: lane1Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, screenWidth: size.width)
-                }
-            } else {
-                let randomLaneY = Bool.random() ? lane0Y : lane1Y
-                self.spawnLine(laneY: randomLaneY, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, screenWidth: size.width)
-            }
+        if isDoubleLane {
+            spawnLine(laneY: lane0Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
+            spawnLine(laneY: lane1Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX + 150)
+        } else {
+            let randomLaneY = Bool.random() ? lane0Y : lane1Y
+            spawnLine(laneY: randomLaneY, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
         }
     }
     
-    private func spawnLine(laneY: CGFloat, baseHP: CGFloat, count: Int, progress: CGFloat, screenWidth: CGFloat) {
+    private func spawnLine(laneY: CGFloat, baseHP: CGFloat, count: Int, progress: CGFloat, startX: CGFloat) {
         let minMod = 0.10 + (progress * 0.75)
         let maxMod = 1.50 - (progress * 0.45)
         
@@ -100,27 +93,27 @@ final class SpawnerSystem {
             let finalHP = snapToTier(rawHP)
             
             let spacing: CGFloat = count > 3 ? 100 : 80
-            let startX = screenWidth + 100 + CGFloat(i) * spacing // Spawns closer!
-            let position = CGPoint(x: startX, y: laneY)
+            let xPos = startX + CGFloat(i) * spacing
+            let position = CGPoint(x: xPos, y: laneY)
             
             let enemy = EnemyEntity(position: position, hp: finalHP)
             onEntitySpawned?(enemy) // Notify the scene!
             
-            scrollOff(node: enemy.component(ofType: RenderComponent.self)!.node, width: screenWidth)
+            // Give the enemy the exact distance it needs to travel to go off-screen smoothly
+            scrollOff(node: enemy.component(ofType: RenderComponent.self)!.node, distanceX: xPos + 200)
         }
     }
     
-    private func scrollOff(node: SKNode, width: CGFloat) {
-        let dist = width + 700
+    private func scrollOff(node: SKNode, distanceX: CGFloat) {
         node.run(.sequence([
-            .moveBy(x: -dist, y: 0, duration: Double(dist / GameConstants.objectSpeed)),
+            .moveBy(x: -distanceX, y: 0, duration: Double(distanceX / GameConstants.objectSpeed)),
             .removeFromParent()
         ]))
     }
     
     // MARK: - Extracted Math Logic
     private func poopCount() -> Int {
-        let fractionalCount = 1.0 + (CGFloat(timeSurvived) / 90.0)
+        let fractionalCount = 1.0 + (CGFloat(timeSurvived) / 60.0)
         let baseCount = Int(fractionalCount)
         let extraChance = fractionalCount - CGFloat(baseCount)
         let isExtra = CGFloat.random(in: 0...1) < extraChance ? 1 : 0

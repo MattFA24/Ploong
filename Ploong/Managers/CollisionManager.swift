@@ -46,8 +46,13 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
             
             // Apply Math to Player Power
             let oldPower = statsComp.power
-            let newPower = min(applyGate(gateComp, to: oldPower), GameConstants.powerCap)
+            let newPower = min(applyGate(gateComp, to: oldPower), 5000) // Assuming power cap is 5000
             statsComp.power = newPower
+            
+            // --- ADD THIS TO UPDATE THE PLAYER'S POWER TEXT ---
+            if let powerText = playerNode.childNode(withName: "powerText") as? SKLabelNode {
+                powerText.text = tierLabel(newPower)
+            }
             
             // Visual Feedback: Flash Red (Bad Gate) or Green (Good Gate)
             let isBadGate = newPower < oldPower

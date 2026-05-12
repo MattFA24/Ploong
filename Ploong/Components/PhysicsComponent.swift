@@ -14,10 +14,11 @@ final class PhysicsComponent: GKComponent {
             return
         }
 
-        let body = SKPhysicsBody(rectangleOf: render.node.size)
-        body.allowsRotation = false
-        body.friction = 0
-        body.linearDamping = 0
-        render.node.physicsBody = body
+        // Apply these settings to the body that was ALREADY created in the Entity
+        if let body = render.node.physicsBody {
+            body.allowsRotation = false
+            body.friction = 0
+            body.linearDamping = 0
+        }
     }
 }

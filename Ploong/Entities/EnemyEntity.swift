@@ -26,14 +26,15 @@ final class EnemyEntity: GameEntity {
         render.node.addChild(poop)
         
         // HP Label & Bar
+        
         let hpLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
         hpLbl.name = "hpText"
         hpLbl.text = hp >= 1_000 ? String(format: "%gk", hp / 1_000) : String(format: "%.0f", hp)
         hpLbl.fontSize = 13
-        hpLbl.fontColor = .darkGray
+        hpLbl.fontColor = .black // <-- Try black or white if darkGray is blending in
+        hpLbl.zPosition = 1 // <-- Add this to guarantee it renders on top
         hpLbl.position = CGPoint(x: 0, y: -28)
         render.node.addChild(hpLbl)
-        
         let barBg = SKSpriteNode(color: .black, size: CGSize(width: 40, height: 6))
         barBg.position = CGPoint(x: 0, y: 25)
         let bar = SKSpriteNode(color: .green, size: CGSize(width: 38, height: 4))

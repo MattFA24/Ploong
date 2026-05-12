@@ -11,31 +11,40 @@ import GameplayKit
 final class PlayerEntity: GameEntity {
     init(position: CGPoint) {
         super.init()
-        
-        
+
+        // 1. Setup Render Node
         let render = RenderComponent(color: .init(red: 0.95, green: 0.50, blue: 0.50, alpha: 1), size: CGSize(width: 50, height: 70))
         render.node.position = position
         render.node.zPosition = 10
         
-        
+        // 1.5 Setup Power Text Label
         let powerLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        powerLbl.name = "powerText"
+        powerLbl.name = "powerText" // This name allows CollisionManager to find and update it
         powerLbl.text = "10"
         powerLbl.fontSize = 15
         powerLbl.fontColor = .red
-        powerLbl.zPosition = 1 // Make sure it sits above the player square
+        powerLbl.zPosition = 1
         powerLbl.position = CGPoint(x: 0, y: render.node.size.height / 2 + 10)
         render.node.addChild(powerLbl)
         
-        addComponent(render)
+        // 2. Setup Physics Body
+        let pb = SKPhysicsBody(rectangleOf: render.node.size)
+        pb.isDynamic = true
+        pb.categoryBitMask = PhysicsCategory.player
+        pb.contactTestBitMask = PhysicsCategory.gate | PhysicsCategory.enemy
+        pb.collisionBitMask = 0
+        render.node.physicsBody = pb
         
+        addComponent(render)
+
         // 3. Add Game Logic Components
         addComponent(InputComponent(speed: 420))
         addComponent(StatsComponent(initialPower: 10))
         addComponent(PhysicsComponent())
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
 }
+

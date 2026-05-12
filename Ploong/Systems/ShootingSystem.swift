@@ -38,7 +38,10 @@ final class ShootingSystem {
                 // Notify the scene to render and retain the bullet
                 onEntitySpawned?(bullet)
                 
-                let travelDist = 2000.0 // Fly off screen
+                // Fetch scene width dynamically so the bullet despawns right after leaving the screen
+                let screenWidth: CGFloat = render.node.scene?.size.width ?? 900
+                let travelDist = screenWidth - bulletPos.x + 50
+                
                 let duration = travelDist / GameConstants.bulletSpeed
                 let bulletRender = bullet.component(ofType: RenderComponent.self)?.node
                 

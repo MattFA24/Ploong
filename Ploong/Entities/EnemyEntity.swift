@@ -1,3 +1,11 @@
+//
+//  EnemyEntity.swift
+//  Ploong
+//
+//  Created by Matthew Fernando Anggrian on 12/05/26.
+//
+
+
 import SpriteKit
 import GameplayKit
 
@@ -5,14 +13,17 @@ final class EnemyEntity: GameEntity {
     init(position: CGPoint, hp: CGFloat) {
         super.init()
         
-        // 1. Render (Using your Poop emoji setup)
-        let render = RenderComponent()
+        // 1. Render (Fixed: using clear color and size so it compiles)
+        let render = RenderComponent(color: .clear, size: CGSize(width: 40, height: 40))
+        render.node.position = position
+        render.node.zPosition = 6
+        render.node.entity = self // CRUCIAL: Links the node to this ECS Entity
+        
+        // Enemy visual (Poop emoji)
         let poop = SKLabelNode(text: "💩")
         poop.fontSize = 36
         poop.verticalAlignmentMode = .center
         render.node.addChild(poop)
-        render.node.position = position
-        render.node.zPosition = 6
         
         // HP Label & Bar
         let hpLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
@@ -42,5 +53,6 @@ final class EnemyEntity: GameEntity {
         addComponent(PhysicsComponent())
         addComponent(HealthComponent(hp: hp))
     }
+    
     required init?(coder: NSCoder) { super.init(coder: coder) }
 }

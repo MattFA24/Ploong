@@ -1,3 +1,11 @@
+//
+//  DamageComponent.swift
+//  Ploong
+//
+//  Created by Matthew Fernando Anggrian on 12/05/26.
+//
+
+
 import GameplayKit
 
 final class DamageComponent: GKComponent {

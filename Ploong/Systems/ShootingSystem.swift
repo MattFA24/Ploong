@@ -1,36 +1,47 @@
+//
+//  ShootingSystem.swift
+//  Ploong
+//
+//  Created by Matthew Fernando Anggrian on 12/05/26.
+//
+
+import SpriteKit
 import GameplayKit
 
-final class ShootingSystem: GKComponentSystem<StatsComponent> {
+final class ShootingSystem {
+    private let componentSystem = GKComponentSystem(componentClass: StatsComponent.self)
     private var timeSinceLastShot: TimeInterval = 0
     
-    init() {
-        super.init(componentClass: StatsComponent.self)
+    // Callback to pass the entity back to the scene
+    var onEntitySpawned: ((GKEntity) -> Void)?
+    
+    func addComponent(_ component: StatsComponent) {
+        componentSystem.addComponent(component)
     }
     
-    func update(deltaTime seconds: TimeInterval, renderSystem: RenderSystem) {
+    func update(deltaTime seconds: TimeInterval) {
         timeSinceLastShot += seconds
         
-        for component in components {
-            guard let entity = component.entity as? GameEntity,
+        for case let component as StatsComponent in componentSystem.components {
+            guard let entity = component.entity,
                   let render = entity.component(ofType: RenderComponent.self) else { continue }
             
-            // Calculate fire rate based on power
             let powerRatio = Double(component.power / GameConstants.powerCap)
             let fireInterval = max(0.12, 0.25 - powerRatio * 0.13)
             
             if timeSinceLastShot >= fireInterval {
                 timeSinceLastShot = 0
                 
-                // Spawn bullet
                 let bulletPos = CGPoint(x: render.node.position.x + render.node.frame.width / 2 + 8, y: render.node.position.y)
                 let bullet = BulletEntity(position: bulletPos, damage: component.power)
                 
-                renderSystem.addEntity(bullet)
+                // Notify the scene to render and retain the bullet
+                onEntitySpawned?(bullet)
                 
-                // Move bullet
                 let travelDist = 2000.0 // Fly off screen
                 let duration = travelDist / GameConstants.bulletSpeed
                 let bulletRender = bullet.component(ofType: RenderComponent.self)?.node
+                
                 bulletRender?.run(.sequence([
                     .moveBy(x: travelDist, y: 0, duration: duration),
                     .removeFromParent()

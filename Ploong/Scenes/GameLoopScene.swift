@@ -20,64 +20,98 @@ final class GameLoopScene: SKScene {
     }
 
     private lazy var stateMachine = GKStateMachine(states: [
-        PlayingState(scene: self),
-        PausedState(scene: self),
-        CountdownState(scene: self)
-    ])
+            PlayingState(scene: self),
+            PausedState(scene: self),
+            CountdownState(scene: self)
+        ])
 
-    private weak var pauseOverlay: SKNode?
-    private weak var pauseModal: SKShapeNode?
-    private weak var countdownLabel: SKLabelNode?
+        private weak var pauseOverlay: SKNode?
+        private weak var pauseModal: SKShapeNode?
+        private weak var countdownLabel: SKLabelNode?
 
-    private let renderSystem = RenderSystem()
-    private var entities: [GKEntity] = []
+        private let renderSystem = RenderSystem()
+        private var entities: [GKEntity] = []
+        
+        private let movementSystem = MovementSystem()
+        private let shootingSystem = ShootingSystem()
+        private let spawnerSystem = SpawnerSystem()
+        private let collisionManager = CollisionManager()
+        
+        private var player: PlayerEntity!
+        private var lastUpdateTime: TimeInterval = 0
 
-    override func sceneDidLoad() {
-        super.sceneDidLoad()
-        backgroundColor = .white
-        AudioManager.shared.playGameBgm()
-        setupWorld()
-        buildPauseOverlay()
-        stateMachine.enter(PlayingState.self)
-    }
-
-    private func setupWorld() {
-        let background = SpriteEntity(
-            textureName: "game_bg",
-            size: size,
-            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
-            zPosition: -10
-        )
-
-        let platformSize = scaledSize(for: "mid_platform", width: size.width)
-        let platform = SpriteEntity(
-            textureName: "mid_platform",
-            size: platformSize,
-            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
-            zPosition: 5
-        )
-
-        let roofSize = scaledSize(for: "tiles_roof", width: size.width)
-        let topRoof = SpriteEntity(
-            textureName: "tiles_roof",
-            size: roofSize,
-            position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5),
-            zPosition: 6
-        )
-
-        let bottomRoof = SpriteEntity(
-            textureName: "tiles_roof",
-            size: roofSize,
-            position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5),
-            zPosition: 6
-        )
-
-        entities = [background, platform, topRoof, bottomRoof]
-        for entity in entities {
-            renderSystem.addEntity(entity)
+        override func sceneDidLoad() {
+            super.sceneDidLoad()
+            backgroundColor = .white
+            AudioManager.shared.playGameBgm()
+            
+            physicsWorld.gravity = .zero
+            physicsWorld.contactDelegate = collisionManager
+            collisionManager.scene = self
+            
+            collisionManager.onPlayerHitEnemy = { [weak self] in
+                self?.stateMachine.enter(PausedState.self)
+            }
+            
+            // 1. Tell the systems what to do when they spawn an entity!
+            let spawnHandler: (GKEntity) -> Void = { [weak self] entity in
+                guard let self = self else { return }
+                self.entities.append(entity) // Retain entity in memory
+                self.renderSystem.addEntity(entity)
+                if let render = entity.component(ofType: RenderComponent.self) {
+                    render.addToScene(self) // Add explicitly to Scene
+                }
+            }
+            
+            shootingSystem.onEntitySpawned = spawnHandler
+            spawnerSystem.onEntitySpawned = spawnHandler
+            
+            setupWorld()
+            buildPauseOverlay()
+            stateMachine.enter(PlayingState.self)
         }
-        renderSystem.addToScene(self)
-    }
+
+        override func update(_ currentTime: TimeInterval) {
+            if lastUpdateTime == 0 { lastUpdateTime = currentTime }
+            let deltaTime = currentTime - lastUpdateTime
+            lastUpdateTime = currentTime
+            
+            if stateMachine.currentState is PlayingState {
+                movementSystem.update(deltaTime: deltaTime)
+                shootingSystem.update(deltaTime: deltaTime)
+                spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
+                
+                // 2. Clean up destroyed entities to prevent memory leaks!
+                entities.removeAll { entity in
+                    if let render = entity.component(ofType: RenderComponent.self) {
+                        return render.node.parent == nil // Removes if node was destroyed
+                    }
+                    return false
+                }
+            }
+        }
+
+        private func setupWorld() {
+            // [Keep your original Background, Platform, Roof setup code exactly the same...]
+            let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)
+            let platformSize = scaledSize(for: "mid_platform", width: size.width)
+            let platform = SpriteEntity(textureName: "mid_platform", size: platformSize, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: 5)
+            let roofSize = scaledSize(for: "tiles_roof", width: size.width)
+            let topRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5), zPosition: 6)
+            let bottomRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
+
+            player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: size.height / 2))
+            
+            if let stats = player.component(ofType: StatsComponent.self) {
+                shootingSystem.addComponent(stats)
+            }
+
+            entities = [background, platform, topRoof, bottomRoof, player]
+            for entity in entities {
+                renderSystem.addEntity(entity)
+            }
+            renderSystem.addToScene(self)
+        }
 
     private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {
         let texture = SKTexture(imageNamed: textureName)
@@ -90,9 +124,24 @@ final class GameLoopScene: SKScene {
         return CGSize(width: width, height: textureSize.height * scale)
     }
 
+    // MARK: - Input Handling
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 49 {
+        if event.keyCode == 49 { // Spacebar
             handleSpacebar()
+        }
+        
+        // Lane switching logic for Up/Down arrows
+        if stateMachine.currentState is PlayingState {
+            let renderNode = player.component(ofType: RenderComponent.self)?.node
+            
+            if event.keyCode == 126 { // Up Arrow
+                let topLaneY = size.height / 2 + GameConstants.laneGap / 2
+                renderNode?.run(.moveTo(y: topLaneY, duration: 0.15))
+            }
+            if event.keyCode == 125 { // Down Arrow
+                let bottomLaneY = size.height / 2 - GameConstants.laneGap / 2
+                renderNode?.run(.moveTo(y: bottomLaneY, duration: 0.15))
+            }
         }
     }
 
@@ -109,6 +158,7 @@ final class GameLoopScene: SKScene {
         }
     }
 
+    // MARK: - State Methods
     func enterPlaying() {
         physicsWorld.speed = 1
         hidePauseOverlay()
@@ -124,6 +174,7 @@ final class GameLoopScene: SKScene {
         startCountdown()
     }
 
+    // MARK: - UI Building
     private func buildPauseOverlay() {
         let overlay = SKNode()
         overlay.name = NodeName.pauseOverlay.rawValue
@@ -258,6 +309,7 @@ final class GameLoopScene: SKScene {
         label.run(sequence)
     }
 
+    // MARK: - UI Event Handling
     private func handlePauseOverlaySelection(at location: CGPoint) {
         guard pauseOverlay?.isHidden == false else {
             return

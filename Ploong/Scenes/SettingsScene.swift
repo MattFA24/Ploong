@@ -25,121 +25,97 @@ final class SettingsScene: SKScene {
             buildLayout()
         }
         
-        // Re-sync the background system for this scene
+        // Sync background and hide ornaments
         BackgroundManager.shared.setupBackground(in: self)
-        
-        // Keep the foam and characters hidden while in settings
         BackgroundManager.shared.setOrnamentsVisible(false, animated: false)
     }
 
     private func buildLayout() {
-        let dimmer = SKShapeNode(rectOf: size)
-        dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
-        dimmer.strokeColor = .clear
-        dimmer.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-        dimmer.zPosition = 0
-        addChild(dimmer)
+            // --- LAYOUT TWEAKABLES: Change these values to move elements ---
+            let previewY: CGFloat = 170.0          // Moves rectangle up/down
+            let previewScale: CGFloat = 0.40       // Size of rectangle (0.45 = 45% of modal)
+            
+            let textColumnX: CGFloat = -400.0      // Move ALL text left (-) or right (+)
+            let sliderColumnX: CGFloat = 200.0     // Move ALL sliders left (-) or right (+)
+            let slidersWidth: CGFloat = 700.0      // How long the sliders are
+            
+            let startY: CGFloat = -80.0            // Vertical position of the first row
+            let rowSpacing: CGFloat = -100.0        // Distance between rows
+            // ---------------------------------------------------------------
 
-        let modalSize = CGSize(width: size.width * 0.82, height: size.height * 0.76)
-        let modal = SKShapeNode(rectOf: modalSize, cornerRadius: 28)
-        modal.fillColor = .white
-        modal.strokeColor = .clear
-        modal.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
-        modal.zPosition = 1
-        addChild(modal)
+            let dimmer = SKShapeNode(rectOf: size)
+            dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
+            dimmer.strokeColor = .clear
+            dimmer.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
+            dimmer.zPosition = 0
+            addChild(dimmer)
 
-        // Close Button
-        let closeButton = SKShapeNode(circleOfRadius: 26)
-        closeButton.name = "closeButton"
-        closeButton.fillColor = NSColor(white: 0.7, alpha: 1)
-        closeButton.strokeColor = NSColor(white: 0.4, alpha: 1)
-        closeButton.position = CGPoint(x: -modalSize.width * 0.5 + 44, y: modalSize.height * 0.5 - 44)
-        closeButton.zPosition = 2
-        modal.addChild(closeButton)
+            let modalTexture = SKTexture(imageNamed: "modal_window")
+            modalTexture.filteringMode = .nearest
+            let modal = SKSpriteNode(texture: modalTexture)
+            modal.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
+            modal.zPosition = 1
+            let modalScale = (size.width * 0.85) / modal.size.width
+            modal.setScale(modalScale)
+            addChild(modal)
 
-        let closeLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        closeLabel.text = "X"
-        closeLabel.fontSize = 22
-        closeLabel.fontColor = .white
-        closeLabel.verticalAlignmentMode = .center
-        closeLabel.zPosition = 3
-        closeButton.addChild(closeLabel)
+            let modalContentWidth = modal.size.width / modal.xScale
 
-        // Preview Area (Affected by brightness in actual game, but here just a UI placeholder)
-        let preview = SKShapeNode(rectOf: CGSize(width: modalSize.width * 0.55, height: modalSize.height * 0.35), cornerRadius: 12)
-        preview.fillColor = NSColor(white: 0.95, alpha: 1)
-        preview.strokeColor = NSColor(white: 0.85, alpha: 1)
-        preview.position = CGPoint(x: 0, y: modalSize.height * 0.2)
-        preview.zPosition = 2
-        modal.addChild(preview)
+            // Close Button
+            let closeTexture = SKTexture(imageNamed: "close_button")
+            closeTexture.filteringMode = .nearest
+            let closeButton = SKSpriteNode(texture: closeTexture)
+            closeButton.name = "closeButton"
+            closeButton.position = CGPoint(x: -modalContentWidth * 0.44, y: modal.size.height * 0.40 / modal.yScale)
+            closeButton.zPosition = 2
+            modal.addChild(closeButton)
 
-        let previewLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        previewLabel.text = "Game preview"
-        previewLabel.fontSize = 20
-        previewLabel.fontColor = .black
-        previewLabel.verticalAlignmentMode = .center
-        preview.addChild(previewLabel)
+            // 1. Game Preview Window (16:10)
+            let pWidth = modalContentWidth * previewScale
+            let pHeight = (pWidth / 16) * 10
+            let preview = SKShapeNode(rectOf: CGSize(width: pWidth, height: pHeight), cornerRadius: 4)
+            preview.fillColor = NSColor(calibratedRed: 0.75, green: 0.82, blue: 0.85, alpha: 1.0)
+            preview.strokeColor = .clear
+            preview.position = CGPoint(x: 0, y: previewY)
+            preview.zPosition = 2
+            modal.addChild(preview)
 
-        // Sliders setup
-        let sliderLength = modalSize.width * 0.55
-        let leftColumnX = -modalSize.width * 0.22
-        let rightColumnX = modalSize.width * 0.15
-        let firstRowY = -modalSize.height * 0.05
-        let rowSpacing: CGFloat = 70
+            // 2. Row Setup
+            let configs: [(String, CGFloat, (CGFloat) -> Void)] = [
+                ("bgbrightness_text", BackgroundManager.shared.loadBrightness(), { val in BackgroundManager.shared.saveBrightness(val) }),
+                ("music_text", 0.65, { _ in }),
+                ("sfx_text", 0.6, { _ in })
+            ]
 
-        let currentBrightness = BackgroundManager.shared.loadBrightness()
-        
-        let brightnessSlider = makeSlider(title: "Background brightness", length: sliderLength, value: currentBrightness)
-        brightnessSlider.onValueChange = { value in
-            // This now only dims the tiled background, ornaments stay bright
-            BackgroundManager.shared.saveBrightness(value)
+            for (index, config) in configs.enumerated() {
+                let yPos = startY + (CGFloat(index) * rowSpacing)
+                
+                // Text Sprite
+                let textTexture = SKTexture(imageNamed: config.0)
+                textTexture.filteringMode = .nearest
+                let textSprite = SKSpriteNode(texture: textTexture)
+                textSprite.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+                textSprite.position = CGPoint(x: textColumnX, y: yPos)
+                textSprite.zPosition = 2
+                modal.addChild(textSprite)
+                
+                // Slider
+                let slider = SliderNode(length: slidersWidth)
+                slider.value = config.1
+                slider.onValueChange = config.2
+                slider.position = CGPoint(x: sliderColumnX, y: yPos)
+                slider.zPosition = 2
+                modal.addChild(slider)
+                sliders.append(slider)
+            }
         }
 
-        let musicSlider = makeSlider(title: "Music", length: sliderLength, value: 0.65)
-        let sfxSlider = makeSlider(title: "SFX", length: sliderLength, value: 0.6)
-
-        sliders = [brightnessSlider, musicSlider, sfxSlider]
-
-        for (index, slider) in sliders.enumerated() {
-            let y = firstRowY - CGFloat(index) * rowSpacing
-            slider.label.position = CGPoint(x: leftColumnX, y: y)
-            slider.label.zPosition = 2
-            modal.addChild(slider.label)
-            slider.position = CGPoint(x: rightColumnX, y: y)
-            slider.zPosition = 2
-            modal.addChild(slider)
-        }
-    }
-
-    private func makeSlider(title: String, length: CGFloat, value: CGFloat) -> SliderNode {
-        let slider = SliderNode(length: length)
-        slider.value = value
-        let label = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        label.text = title
-        label.fontSize = 18
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .right
-        label.verticalAlignmentMode = .center
-        slider.label = label
-        return slider
-    }
-
+    // MARK: - Input Handling
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
-        handleSelection(at: location)
-    }
-
-    override func mouseDragged(with event: NSEvent) {
-        let location = event.location(in: self)
-        handleDrag(at: location)
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        activeSlider = nil
-    }
-
-    private func handleSelection(at location: CGPoint) {
-        if nodes(at: location).contains(where: { $0.name == "closeButton" }) {
+        let touchedNodes = nodes(at: location)
+        
+        if touchedNodes.contains(where: { $0.name == "closeButton" }) {
             presentMenu()
             return
         }
@@ -154,10 +130,15 @@ final class SettingsScene: SKScene {
         }
     }
 
-    private func handleDrag(at location: CGPoint) {
+    override func mouseDragged(with event: NSEvent) {
         guard let slider = activeSlider else { return }
+        let location = event.location(in: self)
         let localPoint = slider.convert(location, from: self)
         slider.updateValue(for: localPoint.x)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        activeSlider = nil
     }
 
     private func presentMenu() {
@@ -168,38 +149,32 @@ final class SettingsScene: SKScene {
     }
 }
 
-// MARK: - SliderNode Component
-private final class SliderNode: SKNode {
+// MARK: - Helper Slider Node
+// This class must be inside this file for the 'private' references to work correctly.
+class SliderNode: SKNode {
     private let track: SKShapeNode
     private let fill: SKShapeNode
     private let knob: SKShapeNode
     private let length: CGFloat
-    private let thickness: CGFloat
+    private let thickness: CGFloat = 6
 
-    var label = SKLabelNode()
-    var value: CGFloat = 0 {
-        didSet {
-            value = max(0, min(1, value))
-            updateVisuals()
-        }
-    }
+    var value: CGFloat = 0 { didSet { updateVisuals() } }
     var onValueChange: ((CGFloat) -> Void)?
 
-    init(length: CGFloat, thickness: CGFloat = 8) {
+    init(length: CGFloat) {
         self.length = length
-        self.thickness = thickness
-        let trackRect = CGRect(x: -length * 0.5, y: -thickness * 0.5, width: length, height: thickness)
-        track = SKShapeNode(rect: trackRect, cornerRadius: thickness * 0.5)
-        track.fillColor = NSColor(white: 0.85, alpha: 1)
+        
+        track = SKShapeNode(rect: CGRect(x: -length/2, y: -thickness/2, width: length, height: thickness), cornerRadius: 2)
+        track.fillColor = NSColor(white: 0.9, alpha: 1)
         track.strokeColor = .clear
         
         fill = SKShapeNode()
-        fill.fillColor = NSColor(calibratedRed: 0.1, green: 0.45, blue: 0.9, alpha: 1)
+        fill.fillColor = NSColor(calibratedRed: 0.0, green: 0.5, blue: 1.0, alpha: 1.0)
         fill.strokeColor = .clear
         
-        knob = SKShapeNode(circleOfRadius: 12)
+        knob = SKShapeNode(rectOf: CGSize(width: 24, height: 14), cornerRadius: 4)
         knob.fillColor = .white
-        knob.strokeColor = NSColor(white: 0.7, alpha: 1)
+        knob.strokeColor = NSColor(white: 0.8, alpha: 1)
         
         super.init()
         addChild(track)
@@ -208,24 +183,21 @@ private final class SliderNode: SKNode {
         updateVisuals()
     }
 
-    required init?(coder: NSCoder) { nil }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func hitTest(_ point: CGPoint) -> Bool {
-        let bounds = CGRect(x: -length * 0.5, y: -thickness * 1.5, width: length, height: thickness * 3)
-        return bounds.contains(point)
+        // Larger hit area for easier dragging
+        return CGRect(x: -length/2, y: -20, width: length, height: 40).contains(point)
     }
 
     func updateValue(for localX: CGFloat) {
-        let clampedX = max(-length * 0.5, min(length * 0.5, localX))
-        value = (clampedX + length * 0.5) / length
+        value = max(0, min(1, (localX + length/2) / length))
         onValueChange?(value)
     }
 
     private func updateVisuals() {
-        let clampedValue = max(0, min(1, value))
-        let fillWidth = clampedValue * length
-        let fillRect = CGRect(x: -length * 0.5, y: -thickness * 0.5, width: fillWidth, height: thickness)
-        fill.path = CGPath(roundedRect: fillRect, cornerWidth: thickness * 0.5, cornerHeight: thickness * 0.5, transform: nil)
-        knob.position = CGPoint(x: -length * 0.5 + clampedValue * length, y: 0)
+        let fillWidth = value * length
+        fill.path = CGPath(roundedRect: CGRect(x: -length/2, y: -thickness/2, width: fillWidth, height: thickness), cornerWidth: 2, cornerHeight: 2, transform: nil)
+        knob.position = CGPoint(x: -length/2 + fillWidth, y: 0)
     }
 }

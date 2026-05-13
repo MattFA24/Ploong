@@ -8,18 +8,30 @@
 import SpriteKit
 
 final class CharactersScene: SKScene {
-    private enum NavDirection {
-        case left
-        case right
-    }
-
     private var didSetupLayout = false
-    private var characterNodes: [SKShapeNode] = []
-    private var characterLabels: [SKLabelNode] = []
-    private var selectedIndex = 2
-    private var chosenIndex = 2
-    private weak var selectionIndicator: SKShapeNode?
-    private weak var selectLabel: SKLabelNode?
+    
+    private var characterNodes: [SKSpriteNode] = []
+    private var characterLabels: [SKSpriteNode] = []
+    private var selectButton: SKSpriteNode?
+    private var indicator: SKSpriteNode?
+    
+    private var currentlyHighlightedIndex = 0
+    private var currentlySelectedCharacterIndex = 0
+    
+    // --- LAYOUT CONSTANTS ---
+    private let charCount = 5
+    private let charSpacing: CGFloat = 175.0
+    private let charY: CGFloat = 60.0
+    private let uniformCharWidth: CGFloat = 100.0 // Base width for all characters
+    
+    private let labelGap: CGFloat = 20.0
+    private let highlightLabelShift: CGFloat = 15.0
+    
+    private let selectButtonY: CGFloat = -230.0
+    private let indicatorGap: CGFloat = 30.0
+    
+    private let highlightScaleMult: CGFloat = 1.35 // Zoom multiplier
+    // ------------------------
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -28,20 +40,16 @@ final class CharactersScene: SKScene {
 
     override func didMove(to view: SKView) {
         super.didMove(to: view)
-
         if !didSetupLayout {
             didSetupLayout = true
             buildLayout()
         }
-        
-        // Sync the background system
         BackgroundManager.shared.setupBackground(in: self)
-        
-        // Keep ornaments popped down
         BackgroundManager.shared.setOrnamentsVisible(false, animated: false)
     }
 
     private func buildLayout() {
+        // 1. Dimmer
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
         dimmer.strokeColor = .clear
@@ -49,203 +57,166 @@ final class CharactersScene: SKScene {
         dimmer.zPosition = 0
         addChild(dimmer)
 
-        let modalSize = CGSize(width: size.width * 0.86, height: size.height * 0.76)
-        let modal = SKShapeNode(rectOf: modalSize, cornerRadius: 28)
-        modal.fillColor = NSColor(white: 0.88, alpha: 1)
-        modal.strokeColor = .clear
+        // 2. Modal
+        let modalTexture = SKTexture(imageNamed: "modal_window")
+        modalTexture.filteringMode = .nearest
+        let modal = SKSpriteNode(texture: modalTexture)
         modal.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
         modal.zPosition = 1
+        let modalScale = (size.width * 0.85) / modal.size.width
+        modal.setScale(modalScale)
         addChild(modal)
 
-        // Close Button
-        let closeButton = SKShapeNode(circleOfRadius: 26)
+        let mWidth = modal.size.width / modal.xScale
+
+        // 3. Close Button
+        let closeTexture = SKTexture(imageNamed: "close_button")
+        closeTexture.filteringMode = .nearest
+        let closeButton = SKSpriteNode(texture: closeTexture)
         closeButton.name = "closeButton"
-        closeButton.fillColor = NSColor(white: 0.7, alpha: 1)
-        closeButton.strokeColor = NSColor(white: 0.4, alpha: 1)
-        closeButton.position = CGPoint(x: -modalSize.width * 0.5 + 44, y: modalSize.height * 0.5 - 44)
+        closeButton.position = CGPoint(x: -mWidth * 0.44, y: modal.size.height * 0.40 / modal.yScale)
         closeButton.zPosition = 2
         modal.addChild(closeButton)
 
-        let closeLabel = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        closeLabel.text = "X"
-        closeLabel.fontSize = 22
-        closeLabel.fontColor = .white
-        closeLabel.verticalAlignmentMode = .center
-        closeLabel.zPosition = 3
-        closeButton.addChild(closeLabel)
+        // 4. Coin UI
+        let coinBgTexture = SKTexture(imageNamed: "coin_bg")
+        coinBgTexture.filteringMode = .nearest
+        let coinBg = SKSpriteNode(texture: coinBgTexture)
+        coinBg.position = CGPoint(x: mWidth * 0.32, y: modal.size.height * 0.38 / modal.yScale)
+        coinBg.zPosition = 2
+        modal.addChild(coinBg)
 
-        // Navigation
-        let leftChevron = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        leftChevron.text = "<"
-        leftChevron.name = "navLeft"
-        leftChevron.fontSize = 40
-        leftChevron.fontColor = .black
-        leftChevron.verticalAlignmentMode = .center
-        leftChevron.position = CGPoint(x: -modalSize.width * 0.45, y: 0)
-        leftChevron.zPosition = 2
-        modal.addChild(leftChevron)
+        let coinImgTexture = SKTexture(imageNamed: "coin_img")
+        coinImgTexture.filteringMode = .nearest
+        let coinImg = SKSpriteNode(texture: coinImgTexture)
+        coinImg.position = CGPoint(x: -35, y: 0)
+        coinBg.addChild(coinImg)
 
-        let rightChevron = SKLabelNode(fontNamed: "AvenirNext-Heavy")
-        rightChevron.text = ">"
-        rightChevron.name = "navRight"
-        rightChevron.fontSize = 40
-        rightChevron.fontColor = .black
-        rightChevron.verticalAlignmentMode = .center
-        rightChevron.position = CGPoint(x: modalSize.width * 0.45, y: 0)
-        rightChevron.zPosition = 2
-        modal.addChild(rightChevron)
+        let coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        coinLabel.text = "67"
+        coinLabel.fontSize = 28
+        coinLabel.fontColor = .black
+        coinLabel.horizontalAlignmentMode = .left
+        coinLabel.verticalAlignmentMode = .center
+        coinLabel.position = CGPoint(x: -10, y: 0)
+        coinBg.addChild(coinLabel)
 
-        let centerY = modalSize.height * 0.1
-        let spacing: CGFloat = 140
-        let baseSize = CGSize(width: 70, height: 140)
-        let highlightSize = CGSize(width: 110, height: 220)
-
-        characterNodes = []
-        characterLabels = []
-
-        for index in 0..<5 {
-            let node = SKShapeNode(rectOf: baseSize, cornerRadius: 12)
-            node.name = "character_\(index)"
-            node.fillColor = NSColor(white: 0.2, alpha: 1)
-            node.strokeColor = .clear
-            node.position = CGPoint(x: CGFloat(index - 2) * spacing, y: centerY)
-            node.zPosition = 2
-            modal.addChild(node)
-            characterNodes.append(node)
-
-            let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-            label.text = index == 1 ? "TiuTiu" : (index == 2 ? "Joy" : "???")
-            label.fontSize = 20
-            label.fontColor = .black
-            label.verticalAlignmentMode = .center
-            label.position = CGPoint(x: node.position.x, y: centerY - 120)
-            label.zPosition = 2
-            modal.addChild(label)
-            characterLabels.append(label)
+        // 5. Setup Characters & Labels
+        let startX = -CGFloat(charCount - 1) * charSpacing * 0.5
+        for i in 0..<charCount {
+            let isJoy = (i == 0)
+            let tex = SKTexture(imageNamed: isJoy ? "joy_char" : "unknown_char")
+            tex.filteringMode = .nearest
+            
+            let char = SKSpriteNode(texture: tex)
+            char.name = "char_\(i)"
+            char.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+            char.position = CGPoint(x: startX + CGFloat(i) * charSpacing, y: charY)
+            char.zPosition = 3
+            modal.addChild(char)
+            characterNodes.append(char)
+            
+            let lTex = SKTexture(imageNamed: isJoy ? "joy_text" : "unknown_text")
+            lTex.filteringMode = .nearest
+            let labelSprite = SKSpriteNode(texture: lTex)
+            labelSprite.anchorPoint = CGPoint(x: 0.5, y: 1.0)
+            labelSprite.position = CGPoint(x: char.position.x, y: 0)
+            labelSprite.zPosition = 3
+            modal.addChild(labelSprite)
+            characterLabels.append(labelSprite)
         }
 
-        // Selection Titles
-        let title = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        title.text = "Joy"
-        title.name = "characterTitle"
-        title.fontSize = 34
-        title.fontColor = .black
-        title.verticalAlignmentMode = .center
-        title.position = CGPoint(x: 0, y: -modalSize.height * 0.25)
-        title.zPosition = 2
-        modal.addChild(title)
+        // 6. Selected Indicator
+        let indTex = SKTexture(imageNamed: "selected_indicator")
+        indTex.filteringMode = .nearest
+        indicator = SKSpriteNode(texture: indTex)
+        indicator?.anchorPoint = CGPoint(x: 0.5, y: 0)
+        indicator?.zPosition = 4
+        if let ind = indicator { modal.addChild(ind) }
 
-        let subtitle = SKLabelNode(fontNamed: "AvenirNext-Regular")
-        subtitle.text = "your daily joyful gurl"
-        subtitle.name = "characterSubtitle"
-        subtitle.fontSize = 16
-        subtitle.fontColor = .black
-        subtitle.verticalAlignmentMode = .center
-        subtitle.position = CGPoint(x: 0, y: -modalSize.height * 0.32)
-        subtitle.zPosition = 2
-        modal.addChild(subtitle)
+        // 7. Select Button
+        selectButton = SKSpriteNode(imageNamed: "selected_button")
+        selectButton?.name = "selectButton"
+        selectButton?.texture?.filteringMode = .nearest
+        selectButton?.position = CGPoint(x: 0, y: selectButtonY)
+        selectButton?.zPosition = 2
+        if let sb = selectButton { modal.addChild(sb) }
 
-        let selectButton = SKShapeNode(rectOf: CGSize(width: 160, height: 46), cornerRadius: 23)
-        selectButton.name = "selectButton"
-        selectButton.fillColor = NSColor(calibratedRed: 0.35, green: 0.4, blue: 0.75, alpha: 1)
-        selectButton.strokeColor = .clear
-        selectButton.position = CGPoint(x: 0, y: -modalSize.height * 0.42)
-        selectButton.zPosition = 2
-        modal.addChild(selectButton)
+        refreshSelectionUI()
+    }
 
-        let selectLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        selectLabel.text = "SELECT"
-        selectLabel.fontSize = 18
-        selectLabel.fontColor = .white
-        selectLabel.verticalAlignmentMode = .center
-        selectLabel.zPosition = 3
-        selectButton.addChild(selectLabel)
-        self.selectLabel = selectLabel
+    private func refreshSelectionUI() {
+        for (index, node) in characterNodes.enumerated() {
+            let isHighlighted = (index == currentlyHighlightedIndex)
+            let isSelected = (index == currentlySelectedCharacterIndex)
+            
+            // MATH FIX: Use the raw texture size for constant, lag-free calculations
+            guard let tex = node.texture else { continue }
+            let rawWidth = tex.size().width
+            let rawHeight = tex.size().height
+            
+            // Calculate scale targets
+            let baseScale = uniformCharWidth / rawWidth
+            let targetScale: CGFloat = isHighlighted ? (baseScale * highlightScaleMult) : baseScale
+            
+            // 1. Update Character
+            node.removeAllActions()
+            node.run(SKAction.scale(to: targetScale, duration: 0.1))
+            node.zPosition = isHighlighted ? 10 : 3
+            
+            // 2. Update Label (Pinned exactly to the calculated target feet position)
+            let label = characterLabels[index]
+            let currentLabelGap = isHighlighted ? (labelGap + highlightLabelShift) : labelGap
+            // Calculate where the feet will be: CenterY - (Half the target height)
+            let targetFeetY = node.position.y - (rawHeight * targetScale * 0.5)
+            
+            label.removeAllActions()
+            label.run(SKAction.moveTo(y: targetFeetY - currentLabelGap, duration: 0.1))
 
-        let indicator = SKShapeNode(path: trianglePath(size: CGSize(width: 28, height: 18)))
-        indicator.name = "selectionIndicator"
-        indicator.fillColor = NSColor(calibratedRed: 0.3, green: 0.7, blue: 0.3, alpha: 1)
-        indicator.strokeColor = .clear
-        indicator.zPosition = 4
-        modal.addChild(indicator)
-        selectionIndicator = indicator
+            // 3. Update Indicator (Only follow the SELECTED character)
+            if isSelected {
+                // Check if the selected character is the one being zoomed
+                let visualHeadScale = (index == currentlyHighlightedIndex) ? (baseScale * highlightScaleMult) : baseScale
+                let targetHeadY = node.position.y + (rawHeight * visualHeadScale * 0.5)
+                
+                indicator?.removeAllActions()
+                indicator?.run(SKAction.group([
+                    SKAction.moveTo(x: node.position.x, duration: 0.1),
+                    SKAction.moveTo(y: targetHeadY + indicatorGap, duration: 0.1)
+                ]))
+            }
+        }
 
-        updateSelection(highlightSize: highlightSize)
+        // 4. Update Button State
+        let isLookingAtSelection = (currentlyHighlightedIndex == currentlySelectedCharacterIndex)
+        let texName = isLookingAtSelection ? "selected_button" : "unselected_button"
+        selectButton?.texture = SKTexture(imageNamed: texName)
+        selectButton?.texture?.filteringMode = .nearest
     }
 
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
-        handleSelection(at: location)
-    }
+        let nodesAtPoint = nodes(at: location)
 
-    private func handleSelection(at location: CGPoint) {
-        if nodes(at: location).contains(where: { $0.name == "closeButton" }) {
+        if nodesAtPoint.contains(where: { $0.name == "closeButton" }) {
             presentMenu()
             return
         }
 
-        if nodes(at: location).contains(where: { $0.name == "navLeft" }) {
-            moveSelection(.left)
-            return
+        // Handle Character Selection
+        for i in 0..<characterNodes.count {
+            if nodesAtPoint.contains(characterNodes[i]) {
+                currentlyHighlightedIndex = i
+                refreshSelectionUI()
+                return
+            }
         }
 
-        if nodes(at: location).contains(where: { $0.name == "navRight" }) {
-            moveSelection(.right)
-            return
+        // Handle Equip Button
+        if nodesAtPoint.contains(where: { $0.name == "selectButton" }) {
+            currentlySelectedCharacterIndex = currentlyHighlightedIndex
+            refreshSelectionUI()
         }
-
-        if nodes(at: location).contains(where: { $0.name == "selectButton" }) {
-            chosenIndex = selectedIndex
-            updateSelection(highlightSize: CGSize(width: 110, height: 220))
-        }
-    }
-
-    private func moveSelection(_ direction: NavDirection) {
-        let maxIndex = characterNodes.count - 1
-        switch direction {
-        case .left:
-            selectedIndex = max(0, selectedIndex - 1)
-        case .right:
-            selectedIndex = min(maxIndex, selectedIndex + 1)
-        }
-        updateSelection(highlightSize: CGSize(width: 110, height: 220))
-    }
-
-    private func updateSelection(highlightSize: CGSize) {
-        for (index, node) in characterNodes.enumerated() {
-            let isSelected = index == selectedIndex
-            let targetSize = isSelected ? highlightSize : CGSize(width: 70, height: 140)
-            node.path = CGPath(roundedRect: CGRect(x: -targetSize.width * 0.5,
-                                                   y: -targetSize.height * 0.5,
-                                                   width: targetSize.width,
-                                                   height: targetSize.height),
-                               cornerWidth: 12,
-                               cornerHeight: 12,
-                               transform: nil)
-            node.fillColor = isSelected ? NSColor(calibratedRed: 0.32, green: 0.4, blue: 0.75, alpha: 1) : NSColor(white: 0.2, alpha: 1)
-            node.zPosition = isSelected ? 3 : 2
-        }
-
-        if chosenIndex < characterNodes.count {
-            let chosen = characterNodes[chosenIndex]
-            selectionIndicator?.position = CGPoint(x: chosen.position.x, y: chosen.position.y + 140)
-        }
-
-        selectLabel?.text = (selectedIndex == chosenIndex) ? "SELECTED" : "SELECT"
-
-        for (index, label) in characterLabels.enumerated() {
-            label.fontColor = index == selectedIndex ? .black : NSColor(white: 0.15, alpha: 1)
-            label.fontSize = index == selectedIndex ? 22 : 18
-        }
-    }
-
-    private func trianglePath(size: CGSize) -> CGPath {
-        let path = CGMutablePath()
-        path.move(to: CGPoint(x: 0, y: size.height))
-        path.addLine(to: CGPoint(x: size.width, y: size.height))
-        path.addLine(to: CGPoint(x: size.width * 0.5, y: 0))
-        path.closeSubpath()
-        return path
     }
 
     private func presentMenu() {

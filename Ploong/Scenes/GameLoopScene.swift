@@ -95,16 +95,37 @@ final class GameLoopScene: SKScene {
                 }
             }
         }
-
-        private func setupWorld() {
+    
+    private func setupWorld() {
             let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)
             let platformSize = scaledSize(for: "mid_platform", width: size.width)
             let platform = SpriteEntity(textureName: "mid_platform", size: platformSize, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: 5)
+            
             let roofSize = scaledSize(for: "tiles_roof", width: size.width)
             let topRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5), zPosition: 6)
             let bottomRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
 
-            player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: size.height / 2))
+            // --- PIXEL PERFECT MATH CALCULATIONS ---
+            let characterHalfHeight: CGFloat = 35
+            
+            // Fix: Explicitly define the visible height of the bottom tiles (approx 115px)
+            // If the character is still slightly floating or sinking, just tweak this number!
+            let visibleFloorHeight: CGFloat = 115
+
+            // Bottom Lane Y
+            GameConstants.bottomLaneY = visibleFloorHeight + characterHalfHeight
+            
+            // Top Lane Y
+            GameConstants.topLaneY = (size.height / 2) + (platformSize.height / 2) + characterHalfHeight
+
+            // Gate sizing
+            let gapHeight = ((size.height / 2) - (platformSize.height / 2)) - visibleFloorHeight
+            GameConstants.gateHeight = gapHeight
+            GameConstants.gateBottomY = visibleFloorHeight + (gapHeight / 2)
+            GameConstants.gateTopY = (size.height / 2) + (platformSize.height / 2) + (gapHeight / 2)
+            // ---------------------------------------
+
+            player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: GameConstants.bottomLaneY))
             
             if let stats = player.component(ofType: StatsComponent.self) {
                 shootingSystem.addComponent(stats)
@@ -116,7 +137,7 @@ final class GameLoopScene: SKScene {
             }
             renderSystem.addToScene(self)
         }
-
+    
     private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {
         let texture = SKTexture(imageNamed: textureName)
         let textureSize = texture.size()
@@ -130,24 +151,22 @@ final class GameLoopScene: SKScene {
 
     // MARK: - Input Handling
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 49 { // Spacebar
-            handleSpacebar()
-        }
-        
-        // Lane switching logic for Up/Down arrows
-        if stateMachine.currentState is PlayingState {
-            let renderNode = player.component(ofType: RenderComponent.self)?.node
-            
-            if event.keyCode == 126 { // Up Arrow
-                let topLaneY = size.height / 2 + GameConstants.laneGap / 2
-                renderNode?.run(.moveTo(y: topLaneY, duration: 0.15))
+                if event.keyCode == 49 { // Spacebar
+                    handleSpacebar()
+                }
+                
+                // Lane switching logic for Up/Down arrows
+                if stateMachine.currentState is PlayingState {
+                    let renderNode = player.component(ofType: RenderComponent.self)?.node
+                    
+                    if event.keyCode == 126 { // Up Arrow
+                        renderNode?.run(.moveTo(y: GameConstants.topLaneY, duration: 0.15))
+                    }
+                    if event.keyCode == 125 { // Down Arrow
+                        renderNode?.run(.moveTo(y: GameConstants.bottomLaneY, duration: 0.15))
+                    }
+                }
             }
-            if event.keyCode == 125 { // Down Arrow
-                let bottomLaneY = size.height / 2 - GameConstants.laneGap / 2
-                renderNode?.run(.moveTo(y: bottomLaneY, duration: 0.15))
-            }
-        }
-    }
 
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)

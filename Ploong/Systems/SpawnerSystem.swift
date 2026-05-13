@@ -30,79 +30,80 @@ final class SpawnerSystem {
     }
     
     private func spawnWave(size: CGSize) {
-        let waveID = waveCount
-        waveCount += 1
-        let isNeg = (waveID % 2 == 1)
-        
-        let gate0 = makeGate(isTop: false, negative: isNeg)
-        let gate1 = makeGate(isTop: true,  negative: isNeg)
-        
-        let lane0Y = size.height / 2 - GameConstants.laneGap / 2
-        let lane1Y = size.height / 2 + GameConstants.laneGap / 2
-        let gateStartX = size.width + 60
-        
-        let gate0Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane0Y), gateData: GateComponent(type: gate0.type, value: gate0.value, text: gate0.text, waveID: waveID, lane: 0))
-        let gate1Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane1Y), gateData: GateComponent(type: gate1.type, value: gate1.value, text: gate1.text, waveID: waveID, lane: 1))
-        
-        // Notify the scene to render and retain the gates
-        onEntitySpawned?(gate0Entity)
-        onEntitySpawned?(gate1Entity)
-        
-        scrollOff(node: gate0Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
-        scrollOff(node: gate1Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
-        
-        let g0 = min(applyGate(gate0, to: optimalPower), GameConstants.powerCap)
-        let g1 = min(applyGate(gate1, to: optimalPower), GameConstants.powerCap)
-        optimalPower = max(g0, g1)
-        
-        let minutesSurvived = CGFloat(timeSurvived) / 60.0
-        let difficultyProgress = min(1.0, minutesSurvived / 10.0)
-        let margin = 0.80 - (difficultyProgress * 0.75)
-        let endlessBuff = max(1.0, 1.0 + max(0, minutesSurvived - 5.0) * 0.02)
-        
-        let minHitsToKill = 3.0 + Double(difficultyProgress) * 5.0
-        let powerRatio = Double(currentPlayerPower / GameConstants.powerCap)
-        let fireInterval = max(0.12, 0.25 - powerRatio * 0.13)
-        let minHP = currentPlayerPower * CGFloat(fireInterval) * CGFloat(minHitsToKill)
-        
-        let rawBaseHP = optimalPower * (1.0 - margin) * endlessBuff
-        let baseEnemyHP = max(rawBaseHP, minHP)
-        let count = poopCount()
-        
-        // Spawn enemies safely behind the gates instead of using a delayed thread
-        let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
-        let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
-        let baseEnemyStartX = size.width + 400 // Enemies start trailing behind the gates
-        
-        if isDoubleLane {
-            spawnLine(laneY: lane0Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
-            spawnLine(laneY: lane1Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX + 150)
-        } else {
-            let randomLaneY = Bool.random() ? lane0Y : lane1Y
-            spawnLine(laneY: randomLaneY, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
+            let waveID = waveCount
+            waveCount += 1
+            let isNeg = (waveID % 2 == 1)
+            
+            let gate0 = makeGate(isTop: false, negative: isNeg)
+            let gate1 = makeGate(isTop: true,  negative: isNeg)
+            
+            let lane0Y = size.height / 2 - GameConstants.laneGap / 2
+            let lane1Y = size.height / 2 + GameConstants.laneGap / 2
+            let gateStartX = size.width + 60
+            
+            let gate0Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane0Y), gateData: GateComponent(type: gate0.type, value: gate0.value, text: gate0.text, waveID: waveID, lane: 0))
+            let gate1Entity = GateEntity(position: CGPoint(x: gateStartX, y: lane1Y), gateData: GateComponent(type: gate1.type, value: gate1.value, text: gate1.text, waveID: waveID, lane: 1))
+            
+            onEntitySpawned?(gate0Entity)
+            onEntitySpawned?(gate1Entity)
+            
+            scrollOff(node: gate0Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
+            scrollOff(node: gate1Entity.component(ofType: RenderComponent.self)!.node, distanceX: gateStartX + 200)
+            
+            let g0 = min(applyGate(gate0, to: optimalPower), GameConstants.powerCap)
+            let g1 = min(applyGate(gate1, to: optimalPower), GameConstants.powerCap)
+            optimalPower = max(g0, g1)
+            
+            let minutesSurvived = CGFloat(timeSurvived) / 60.0
+            let difficultyProgress = min(1.0, minutesSurvived / 10.0)
+            let margin = 0.80 - (difficultyProgress * 0.75)
+            let endlessBuff = max(1.0, 1.0 + max(0, minutesSurvived - 5.0) * 0.02)
+            
+            let minHitsToKill = 3.0 + Double(difficultyProgress) * 5.0
+            let powerRatio = Double(currentPlayerPower / GameConstants.powerCap)
+            let fireInterval = max(0.12, 0.25 - powerRatio * 0.13)
+            let minHP = currentPlayerPower * CGFloat(fireInterval) * CGFloat(minHitsToKill)
+            
+            let rawBaseHP = optimalPower * (1.0 - margin) * endlessBuff
+            let baseEnemyHP = max(rawBaseHP, minHP)
+            let count = poopCount()
+            
+            let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
+            let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
+            
+            // Push the enemies 500px off-screen to replicate the `enemyDelay`
+            let baseEnemyStartX = size.width + 500
+            
+            if isDoubleLane {
+                spawnLine(laneY: lane0Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
+                // Stagger the second lane by 330 pixels (which is exactly 1.5 seconds at a speed of 220)
+                spawnLine(laneY: lane1Y, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX + 330)
+            } else {
+                let randomLaneY = Bool.random() ? lane0Y : lane1Y
+                spawnLine(laneY: randomLaneY, baseHP: baseEnemyHP, count: count, progress: difficultyProgress, startX: baseEnemyStartX)
+            }
         }
-    }
     
     private func spawnLine(laneY: CGFloat, baseHP: CGFloat, count: Int, progress: CGFloat, startX: CGFloat) {
-        let minMod = 0.10 + (progress * 0.75)
-        let maxMod = 1.50 - (progress * 0.45)
-        
-        for i in 0..<count {
-            let modifier = CGFloat.random(in: minMod...maxMod)
-            let rawHP = baseHP * modifier
-            let finalHP = snapToTier(rawHP)
+            let minMod = 0.10 + (progress * 0.75)
+            let maxMod = 1.50 - (progress * 0.45)
             
             let spacing: CGFloat = count > 3 ? 100 : 80
-            let xPos = startX + CGFloat(i) * spacing
-            let position = CGPoint(x: xPos, y: laneY)
             
-            let enemy = EnemyEntity(position: position, hp: finalHP)
-            onEntitySpawned?(enemy) // Notify the scene!
-            
-            // Give the enemy the exact distance it needs to travel to go off-screen smoothly
-            scrollOff(node: enemy.component(ofType: RenderComponent.self)!.node, distanceX: xPos + 200)
+            for i in 0..<count {
+                let modifier = CGFloat.random(in: minMod...maxMod)
+                let rawHP = baseHP * modifier
+                let finalHP = snapToTier(rawHP)
+                
+                let xPos = startX + CGFloat(i) * spacing
+                let position = CGPoint(x: xPos, y: laneY)
+                
+                let enemy = EnemyEntity(position: position, hp: finalHP)
+                onEntitySpawned?(enemy)
+                
+                scrollOff(node: enemy.component(ofType: RenderComponent.self)!.node, distanceX: xPos + 200)
+            }
         }
-    }
     
     private func scrollOff(node: SKNode, distanceX: CGFloat) {
         node.run(.sequence([
@@ -113,12 +114,13 @@ final class SpawnerSystem {
     
     // MARK: - Extracted Math Logic
     private func poopCount() -> Int {
-        let fractionalCount = 1.0 + (CGFloat(timeSurvived) / 60.0)
-        let baseCount = Int(fractionalCount)
-        let extraChance = fractionalCount - CGFloat(baseCount)
-        let isExtra = CGFloat.random(in: 0...1) < extraChance ? 1 : 0
-        return min(baseCount + isExtra, 5)
-    }
+            let fractionalCount = 1.0 + (CGFloat(timeSurvived) / 90.0)
+            let baseCount = Int(fractionalCount)
+            let extraChance = fractionalCount - CGFloat(baseCount)
+            let isExtra = CGFloat.random(in: 0...1) < extraChance ? 1 : 0
+            return min(baseCount + isExtra, 5)
+        }
+    
     
     private func snapToTier(_ v: CGFloat) -> CGFloat {
         if v >= 1_000 { return max(1_000, round(v / 500) * 500) }

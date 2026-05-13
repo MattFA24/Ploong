@@ -12,6 +12,7 @@ final class ShootingSystem {
     private let componentSystem = GKComponentSystem(componentClass: StatsComponent.self)
     private var timeSinceLastShot: TimeInterval = 0
     
+    
     // Callback to pass the entity back to the scene
     var onEntitySpawned: ((GKEntity) -> Void)?
     
@@ -40,7 +41,7 @@ final class ShootingSystem {
                 
                 // Fetch scene width dynamically so the bullet despawns right after leaving the screen
                 let screenWidth: CGFloat = render.node.scene?.size.width ?? 900
-                let travelDist = screenWidth - bulletPos.x + 50
+                let travelDist = screenWidth - bulletPos.x + 1200
                 
                 let duration = travelDist / GameConstants.bulletSpeed
                 let bulletRender = bullet.component(ofType: RenderComponent.self)?.node

@@ -126,7 +126,9 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
     }
     
     private func tierLabel(_ hp: CGFloat) -> String {
-        if hp >= 1_000 { return String(format: "%gk", hp / 1_000) }
-        return String(format: "%.0f", hp)
-    }
+            if hp >= 1_000 {
+                return String(format: "%.1fk", hp / 1_000).replacingOccurrences(of: ".0k", with: "k")
+            }
+            return String(format: "%.0f", hp)
+        }
 }

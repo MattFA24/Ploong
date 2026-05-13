@@ -28,63 +28,72 @@ final class MenuScene: SKScene {
             didSetupLayout = true
             buildLayout()
         }
+        
+        // Triggers the foam and characters to pop UP when entering the menu
+        BackgroundManager.shared.setOrnamentsVisible(true)
     }
 
     private func buildLayout() {
-        // Use the new ECS-style Manager to handle the background
+        // Setup the endless tiled background (affected by brightness)
+        // and the ornament container (foam + characters @ full brightness)
         BackgroundManager.shared.setupBackground(in: self)
         
         AudioManager.shared.playMenuBgm()
 
+        // 1. Logo
         let title = SKSpriteNode(imageNamed: "menu_logo")
-        title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.78)
-        title.zPosition = 1
-        if title.size.width > 0, title.size.height > 0 {
-            let maxWidth = size.width * 0.6
-            let maxHeight = size.height * 0.18
-            let scale = min(maxWidth / title.size.width, maxHeight / title.size.height)
-            title.setScale(scale)
-        }
+        title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.80)
+        title.zPosition = 10
+        scaleSprite(title, maxWidth: size.width * 0.7, maxHeight: size.height * 0.2)
         addChild(title)
 
-        let highscore = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        highscore.text = "HIGHSCORE: XXX"
-        highscore.fontSize = 26
+        // 2. Highscore
+        let highscore = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        highscore.text = "High score : 100.000"
+        highscore.fontSize = 22
         highscore.fontColor = .black
         highscore.verticalAlignmentMode = .center
         highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.68)
+        highscore.zPosition = 10
         addChild(highscore)
 
-        let buttonMaxWidth = size.width * 0.36
-        let buttonMaxHeight = size.height * 0.09
-
+        // 3. Play Button (The most prominent UI element)
         let playButton = SKSpriteNode(imageNamed: "play_button")
         playButton.name = "play_button"
         playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
-        playButton.zPosition = 1
-        scaleSprite(playButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
+        playButton.zPosition = 10
+        scaleSprite(playButton, maxWidth: size.width * 0.55, maxHeight: size.height * 0.18)
         addChild(playButton)
 
-        let characterButton = SKSpriteNode(imageNamed: "characters_button")
-        characterButton.name = "characters_button"
-        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.34)
-        characterButton.zPosition = 1
-        scaleSprite(characterButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
-        addChild(characterButton)
+        // 4. Secondary Buttons
+        let smallBtnWidth = size.width * 0.45
+        let smallBtnHeight = size.height * 0.08
 
         let settingsButton = SKSpriteNode(imageNamed: "settings_button")
         settingsButton.name = "settings_button"
-        settingsButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.24)
-        settingsButton.zPosition = 1
-        scaleSprite(settingsButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
+        settingsButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.35)
+        settingsButton.zPosition = 10
+        scaleSprite(settingsButton, maxWidth: smallBtnWidth, maxHeight: smallBtnHeight)
         addChild(settingsButton)
+
+        let characterButton = SKSpriteNode(imageNamed: "characters_button")
+        characterButton.name = "characters_button"
+        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.25)
+        characterButton.zPosition = 10
+        scaleSprite(characterButton, maxWidth: smallBtnWidth, maxHeight: smallBtnHeight)
+        addChild(characterButton)
+        
+        // 5. Info Button
+        let infoButton = SKSpriteNode(imageNamed: "info_button")
+        infoButton.name = "info_button"
+        infoButton.position = CGPoint(x: size.width * 0.92, y: size.height * 0.92)
+        infoButton.zPosition = 10
+        scaleSprite(infoButton, maxWidth: 45, maxHeight: 45)
+        addChild(infoButton)
     }
 
     private func scaleSprite(_ sprite: SKSpriteNode, maxWidth: CGFloat, maxHeight: CGFloat) {
-        guard sprite.size.width > 0, sprite.size.height > 0 else {
-            return
-        }
-
+        guard sprite.size.width > 0, sprite.size.height > 0 else { return }
         let scale = min(maxWidth / sprite.size.width, maxHeight / sprite.size.height)
         sprite.setScale(scale)
     }
@@ -99,35 +108,35 @@ final class MenuScene: SKScene {
 
         if nodesAtPoint.contains(where: { $0.name == "play_button" }) {
             route(.play)
-            return
-        }
-
-        if nodesAtPoint.contains(where: { $0.name == "characters_button" }) {
+        } else if nodesAtPoint.contains(where: { $0.name == "characters_button" }) {
             route(.character)
-            return
-        }
-
-        if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
+        } else if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
             route(.settings)
-            return
         }
     }
 
     private func route(_ action: MenuAction) {
-        switch action {
-        case .play:
-            presentCalibration()
-        case .character:
-            presentCharacters()
-        case .settings:
-            presentSettings()
+        // Pop down ornaments before the scene transition
+        BackgroundManager.shared.setOrnamentsVisible(false)
+        
+        let wait = SKAction.wait(forDuration: 0.25)
+        let transition = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            switch action {
+            case .play:
+                self.presentCalibration()
+            case .character:
+                self.presentCharacters()
+            case .settings:
+                self.presentSettings()
+            }
         }
+        self.run(SKAction.sequence([wait, transition]))
     }
 
     private func presentCalibration() {
         guard let view = view else { return }
         AudioManager.shared.stopMenuBgm()
-        // Logic for CalibrationScene transition
         let scene = CalibrationScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)

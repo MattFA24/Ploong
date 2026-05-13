@@ -24,12 +24,15 @@ final class SettingsScene: SKScene {
             didSetupLayout = true
             buildLayout()
         }
+        
+        // Re-sync the background system for this scene
+        BackgroundManager.shared.setupBackground(in: self)
+        
+        // Keep the foam and characters hidden while in settings
+        BackgroundManager.shared.setOrnamentsVisible(false, animated: false)
     }
 
     private func buildLayout() {
-        // Use the centralized BackgroundManager
-        BackgroundManager.shared.setupBackground(in: self)
-
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
         dimmer.strokeColor = .clear
@@ -45,6 +48,7 @@ final class SettingsScene: SKScene {
         modal.zPosition = 1
         addChild(modal)
 
+        // Close Button
         let closeButton = SKShapeNode(circleOfRadius: 26)
         closeButton.name = "closeButton"
         closeButton.fillColor = NSColor(white: 0.7, alpha: 1)
@@ -61,6 +65,7 @@ final class SettingsScene: SKScene {
         closeLabel.zPosition = 3
         closeButton.addChild(closeLabel)
 
+        // Preview Area (Affected by brightness in actual game, but here just a UI placeholder)
         let preview = SKShapeNode(rectOf: CGSize(width: modalSize.width * 0.55, height: modalSize.height * 0.35), cornerRadius: 12)
         preview.fillColor = NSColor(white: 0.95, alpha: 1)
         preview.strokeColor = NSColor(white: 0.85, alpha: 1)
@@ -75,17 +80,18 @@ final class SettingsScene: SKScene {
         previewLabel.verticalAlignmentMode = .center
         preview.addChild(previewLabel)
 
+        // Sliders setup
         let sliderLength = modalSize.width * 0.55
         let leftColumnX = -modalSize.width * 0.22
         let rightColumnX = modalSize.width * 0.15
         let firstRowY = -modalSize.height * 0.05
         let rowSpacing: CGFloat = 70
 
-        // Create Sliders
         let currentBrightness = BackgroundManager.shared.loadBrightness()
         
         let brightnessSlider = makeSlider(title: "Background brightness", length: sliderLength, value: currentBrightness)
         brightnessSlider.onValueChange = { value in
+            // This now only dims the tiled background, ornaments stay bright
             BackgroundManager.shared.saveBrightness(value)
         }
 
@@ -96,11 +102,9 @@ final class SettingsScene: SKScene {
 
         for (index, slider) in sliders.enumerated() {
             let y = firstRowY - CGFloat(index) * rowSpacing
-
             slider.label.position = CGPoint(x: leftColumnX, y: y)
             slider.label.zPosition = 2
             modal.addChild(slider.label)
-
             slider.position = CGPoint(x: rightColumnX, y: y)
             slider.zPosition = 2
             modal.addChild(slider)
@@ -110,7 +114,6 @@ final class SettingsScene: SKScene {
     private func makeSlider(title: String, length: CGFloat, value: CGFloat) -> SliderNode {
         let slider = SliderNode(length: length)
         slider.value = value
-
         let label = SKLabelNode(fontNamed: "AvenirNext-Medium")
         label.text = title
         label.fontSize = 18
@@ -149,7 +152,6 @@ final class SettingsScene: SKScene {
                 return
             }
         }
-        activeSlider = nil
     }
 
     private func handleDrag(at location: CGPoint) {
@@ -166,7 +168,7 @@ final class SettingsScene: SKScene {
     }
 }
 
-// MARK: - SliderNode Helper
+// MARK: - SliderNode Component
 private final class SliderNode: SKNode {
     private let track: SKShapeNode
     private let fill: SKShapeNode
@@ -186,23 +188,20 @@ private final class SliderNode: SKNode {
     init(length: CGFloat, thickness: CGFloat = 8) {
         self.length = length
         self.thickness = thickness
-
         let trackRect = CGRect(x: -length * 0.5, y: -thickness * 0.5, width: length, height: thickness)
         track = SKShapeNode(rect: trackRect, cornerRadius: thickness * 0.5)
         track.fillColor = NSColor(white: 0.85, alpha: 1)
         track.strokeColor = .clear
-
+        
         fill = SKShapeNode()
         fill.fillColor = NSColor(calibratedRed: 0.1, green: 0.45, blue: 0.9, alpha: 1)
         fill.strokeColor = .clear
-        fill.position = .zero
-
+        
         knob = SKShapeNode(circleOfRadius: 12)
         knob.fillColor = .white
         knob.strokeColor = NSColor(white: 0.7, alpha: 1)
-
+        
         super.init()
-
         addChild(track)
         addChild(fill)
         addChild(knob)
@@ -227,7 +226,6 @@ private final class SliderNode: SKNode {
         let fillWidth = clampedValue * length
         let fillRect = CGRect(x: -length * 0.5, y: -thickness * 0.5, width: fillWidth, height: thickness)
         fill.path = CGPath(roundedRect: fillRect, cornerWidth: thickness * 0.5, cornerHeight: thickness * 0.5, transform: nil)
-        let x = -length * 0.5 + clampedValue * length
-        knob.position = CGPoint(x: x, y: 0)
+        knob.position = CGPoint(x: -length * 0.5 + clampedValue * length, y: 0)
     }
 }

@@ -33,12 +33,15 @@ final class CharactersScene: SKScene {
             didSetupLayout = true
             buildLayout()
         }
+        
+        // Sync the background system
+        BackgroundManager.shared.setupBackground(in: self)
+        
+        // Keep ornaments popped down
+        BackgroundManager.shared.setOrnamentsVisible(false, animated: false)
     }
 
     private func buildLayout() {
-        // Use the centralized BackgroundManager
-        BackgroundManager.shared.setupBackground(in: self)
-
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
         dimmer.strokeColor = .clear
@@ -54,6 +57,7 @@ final class CharactersScene: SKScene {
         modal.zPosition = 1
         addChild(modal)
 
+        // Close Button
         let closeButton = SKShapeNode(circleOfRadius: 26)
         closeButton.name = "closeButton"
         closeButton.fillColor = NSColor(white: 0.7, alpha: 1)
@@ -70,6 +74,7 @@ final class CharactersScene: SKScene {
         closeLabel.zPosition = 3
         closeButton.addChild(closeLabel)
 
+        // Navigation
         let leftChevron = SKLabelNode(fontNamed: "AvenirNext-Heavy")
         leftChevron.text = "<"
         leftChevron.name = "navLeft"
@@ -119,6 +124,7 @@ final class CharactersScene: SKScene {
             characterLabels.append(label)
         }
 
+        // Selection Titles
         let title = SKLabelNode(fontNamed: "AvenirNext-Bold")
         title.text = "Joy"
         title.name = "characterTitle"

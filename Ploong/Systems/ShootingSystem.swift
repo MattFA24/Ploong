@@ -12,8 +12,6 @@ final class ShootingSystem {
     private let componentSystem = GKComponentSystem(componentClass: StatsComponent.self)
     private var timeSinceLastShot: TimeInterval = 0
     
-    
-    // Callback to pass the entity back to the scene
     var onEntitySpawned: ((GKEntity) -> Void)?
     
     func addComponent(_ component: StatsComponent) {
@@ -33,20 +31,22 @@ final class ShootingSystem {
             if timeSinceLastShot >= fireInterval {
                 timeSinceLastShot = 0
                 
-                let bulletPos = CGPoint(x: render.node.position.x + render.node.frame.width / 2 + 8, y: render.node.position.y)
+                let bulletOriginX = render.node.position.x + render.node.frame.width / 2 + 8
+                let bulletPos = CGPoint(x: bulletOriginX, y: render.node.position.y)
                 let bullet = BulletEntity(position: bulletPos, damage: component.power)
                 
-                // Notify the scene to render and retain the bullet
                 onEntitySpawned?(bullet)
                 
-                // Fetch scene width dynamically so the bullet despawns right after leaving the screen
                 let screenWidth: CGFloat = render.node.scene?.size.width ?? 900
-                let travelDist = screenWidth - bulletPos.x + 1200
                 
-                let duration = travelDist / GameConstants.bulletSpeed
-                let bulletRender = bullet.component(ofType: RenderComponent.self)?.node
+                // BUG 1 FIX: Only travel to the right edge of the screen.
+                // Original GameScene: travelDist = size.width - bullet.position.x - 30
+                // Your version was adding 1200 extra pixels, sending bullets into
+                // off-screen territory where poops are still arriving — causing phantom hits.
+                let travelDist = screenWidth - bulletOriginX - 30
+                let duration = Double(travelDist / GameConstants.bulletSpeed)
                 
-                bulletRender?.run(.sequence([
+                bullet.component(ofType: RenderComponent.self)?.node.run(.sequence([
                     .moveBy(x: travelDist, y: 0, duration: duration),
                     .removeFromParent()
                 ]))

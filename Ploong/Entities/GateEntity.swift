@@ -13,12 +13,12 @@ final class GateEntity: GameEntity {
         super.init()
         
         let w: CGFloat = 60
-        let render = RenderComponent(color: SKColor.gray.withAlphaComponent(0.3), size: CGSize(width: w, height: GameConstants.laneGap))
+        // Update the height to use our new Gate height constant
+        let render = RenderComponent(color: SKColor.gray.withAlphaComponent(0.3), size: CGSize(width: w, height: GameConstants.gateHeight))
         render.node.position = position
         render.node.zPosition = 5
         render.node.name = "gate"
         
-        // CRUCIAL FIX: Link the node back to this entity so CollisionManager can find the math operation
         render.node.entity = self
         
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
@@ -28,14 +28,16 @@ final class GateEntity: GameEntity {
         lbl.verticalAlignmentMode = .center
         render.node.addChild(lbl)
         
-        let pb = SKPhysicsBody(rectangleOf: CGSize(width: w * 0.8, height: GameConstants.laneGap))
+        // Update physics body height
+        let pb = SKPhysicsBody(rectangleOf: CGSize(width: w * 0.8, height: GameConstants.gateHeight))
         pb.isDynamic = false
         pb.categoryBitMask = PhysicsCategory.gate
         pb.contactTestBitMask = PhysicsCategory.player
         render.node.physicsBody = pb
         
         addComponent(render)
-        addComponent(gateData) // Inject the math operation
+        addComponent(gateData)
     }
+    
     required init?(coder: NSCoder) { super.init(coder: coder) }
 }

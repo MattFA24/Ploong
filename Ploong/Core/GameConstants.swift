@@ -10,9 +10,14 @@ import CoreGraphics
 
 enum GameConstants {
     static let playerX: CGFloat = 140
-    static let laneGap: CGFloat = 160
+    static var bottomLaneY: CGFloat = 180
+    static var topLaneY: CGFloat = 460
+    static var gateHeight: CGFloat = 260
+    static var gateBottomY: CGFloat = 280
+    static var gateTopY: CGFloat = 540
+    
     static let objectSpeed: CGFloat = 220
-    static let spawnInterval: TimeInterval = 4.0 // <-- Added this!
+    static let spawnInterval: TimeInterval = 4.0
     static let bulletSpeed: CGFloat = 350
     static let powerCap: CGFloat = 5_000
 }

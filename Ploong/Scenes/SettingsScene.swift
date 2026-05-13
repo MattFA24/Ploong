@@ -11,8 +11,6 @@ final class SettingsScene: SKScene {
     private var didSetupLayout = false
     private var sliders: [SliderNode] = []
     private weak var activeSlider: SliderNode?
-    private var backgroundNodes: [SKSpriteNode] = []
-    private weak var brightnessSlider: SliderNode?
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -29,8 +27,8 @@ final class SettingsScene: SKScene {
     }
 
     private func buildLayout() {
-        addScrollingBackground()
-        applyBackgroundBrightness(loadBackgroundBrightness())
+        // Use the centralized BackgroundManager
+        BackgroundManager.shared.setupBackground(in: self)
 
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
@@ -83,17 +81,18 @@ final class SettingsScene: SKScene {
         let firstRowY = -modalSize.height * 0.05
         let rowSpacing: CGFloat = 70
 
-        sliders = [
-            makeSlider(title: "Background brightness", length: sliderLength, value: loadBackgroundBrightness()),
-            makeSlider(title: "Music", length: sliderLength, value: 0.65),
-            makeSlider(title: "SFX", length: sliderLength, value: 0.6)
-        ]
-
-        brightnessSlider = sliders.first
-        brightnessSlider?.onValueChange = { [weak self] value in
-            self?.storeBackgroundBrightness(value)
-            self?.applyBackgroundBrightness(value)
+        // Create Sliders
+        let currentBrightness = BackgroundManager.shared.loadBrightness()
+        
+        let brightnessSlider = makeSlider(title: "Background brightness", length: sliderLength, value: currentBrightness)
+        brightnessSlider.onValueChange = { value in
+            BackgroundManager.shared.saveBrightness(value)
         }
+
+        let musicSlider = makeSlider(title: "Music", length: sliderLength, value: 0.65)
+        let sfxSlider = makeSlider(title: "SFX", length: sliderLength, value: 0.6)
+
+        sliders = [brightnessSlider, musicSlider, sfxSlider]
 
         for (index, slider) in sliders.enumerated() {
             let y = firstRowY - CGFloat(index) * rowSpacing
@@ -122,63 +121,6 @@ final class SettingsScene: SKScene {
         return slider
     }
 
-    private func addScrollingBackground() {
-        let texture = SKTexture(imageNamed: "main_menu_bg")
-        let textureSize = texture.size()
-        guard textureSize.width > 0, textureSize.height > 0 else {
-            return
-        }
-
-        let speed: CGFloat = 18
-        let scale = max(size.width / textureSize.width, size.height / textureSize.height)
-        let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / speed)
-
-        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
-        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
-
-        let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
-        let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
-
-        let centerX = size.width * 0.5
-        let centerY = size.height * 0.5
-        bg1.position = CGPoint(x: centerX + offset, y: centerY)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
-
-        bg1.zPosition = -2
-        bg2.zPosition = -2
-
-        let move = SKAction.moveBy(x: scaledSize.width, y: 0, duration: duration)
-        let reset = SKAction.moveBy(x: -scaledSize.width, y: 0, duration: 0)
-        let loop = SKAction.repeatForever(SKAction.sequence([move, reset]))
-
-        bg1.run(loop)
-        bg2.run(loop)
-
-        addChild(bg1)
-        addChild(bg2)
-        backgroundNodes = [bg1, bg2]
-    }
-
-    private func applyBackgroundBrightness(_ value: CGFloat) {
-        let clamped = max(0, min(1, value))
-        for node in backgroundNodes {
-            node.alpha = 1
-            node.color = .black
-            node.colorBlendFactor = 1 - clamped
-        }
-    }
-
-    private func loadBackgroundBrightness() -> CGFloat {
-        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
-        let value = stored?.doubleValue ?? 0.5
-        return CGFloat(value)
-    }
-
-    private func storeBackgroundBrightness(_ value: CGFloat) {
-        UserDefaults.standard.set(value, forKey: "backgroundBrightness")
-    }
-
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
         handleSelection(at: location)
@@ -190,30 +132,6 @@ final class SettingsScene: SKScene {
     }
 
     override func mouseUp(with event: NSEvent) {
-        activeSlider = nil
-    }
-
-    override func touchesBegan(with event: NSEvent) {
-        guard let view = view, let touch = event.allTouches().first else {
-            return
-        }
-
-        let locationInView = touch.location(in: view)
-        let location = convertPoint(fromView: locationInView)
-        handleSelection(at: location)
-    }
-
-    override func touchesMoved(with event: NSEvent) {
-        guard let view = view, let touch = event.allTouches().first else {
-            return
-        }
-
-        let locationInView = touch.location(in: view)
-        let location = convertPoint(fromView: locationInView)
-        handleDrag(at: location)
-    }
-
-    override func touchesEnded(with event: NSEvent) {
         activeSlider = nil
     }
 
@@ -231,30 +149,24 @@ final class SettingsScene: SKScene {
                 return
             }
         }
-
         activeSlider = nil
     }
 
     private func handleDrag(at location: CGPoint) {
-        guard let slider = activeSlider else {
-            return
-        }
-
+        guard let slider = activeSlider else { return }
         let localPoint = slider.convert(location, from: self)
         slider.updateValue(for: localPoint.x)
     }
 
     private func presentMenu() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = MenuScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
 }
 
+// MARK: - SliderNode Helper
 private final class SliderNode: SKNode {
     private let track: SKShapeNode
     private let fill: SKShapeNode
@@ -297,9 +209,7 @@ private final class SliderNode: SKNode {
         updateVisuals()
     }
 
-    required init?(coder: NSCoder) {
-        return nil
-    }
+    required init?(coder: NSCoder) { nil }
 
     func hitTest(_ point: CGPoint) -> Bool {
         let bounds = CGRect(x: -length * 0.5, y: -thickness * 1.5, width: length, height: thickness * 3)
@@ -315,15 +225,8 @@ private final class SliderNode: SKNode {
     private func updateVisuals() {
         let clampedValue = max(0, min(1, value))
         let fillWidth = clampedValue * length
-        let fillRect = CGRect(x: -length * 0.5,
-                              y: -thickness * 0.5,
-                              width: fillWidth,
-                              height: thickness)
-        fill.path = CGPath(roundedRect: fillRect,
-                           cornerWidth: thickness * 0.5,
-                           cornerHeight: thickness * 0.5,
-                           transform: nil)
-
+        let fillRect = CGRect(x: -length * 0.5, y: -thickness * 0.5, width: fillWidth, height: thickness)
+        fill.path = CGPath(roundedRect: fillRect, cornerWidth: thickness * 0.5, cornerHeight: thickness * 0.5, transform: nil)
         let x = -length * 0.5 + clampedValue * length
         knob.position = CGPoint(x: x, y: 0)
     }

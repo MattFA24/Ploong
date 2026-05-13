@@ -15,7 +15,6 @@ final class MenuScene: SKScene {
     }
 
     private var didSetupLayout = false
-    private var backgroundNodes: [SKSpriteNode] = []
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -32,8 +31,9 @@ final class MenuScene: SKScene {
     }
 
     private func buildLayout() {
-        addScrollingBackground()
-        applyBackgroundBrightness(loadBackgroundBrightness())
+        // Use the new ECS-style Manager to handle the background
+        BackgroundManager.shared.setupBackground(in: self)
+        
         AudioManager.shared.playMenuBgm()
 
         let title = SKSpriteNode(imageNamed: "menu_logo")
@@ -89,63 +89,6 @@ final class MenuScene: SKScene {
         sprite.setScale(scale)
     }
 
-    private func addScrollingBackground() {
-        let texture = SKTexture(imageNamed: "main_menu_bg")
-        let textureSize = texture.size()
-        guard textureSize.width > 0, textureSize.height > 0 else {
-            return
-        }
-
-        let speed: CGFloat = 18
-        let scale = max(size.width / textureSize.width, size.height / textureSize.height)
-        let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / speed)
-
-        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
-        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
-
-        let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
-        let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
-
-        let centerX = size.width * 0.5
-        let centerY = size.height * 0.5
-        bg1.position = CGPoint(x: centerX + offset, y: centerY)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
-
-        bg1.zPosition = -2
-        bg2.zPosition = -2
-
-        let move = SKAction.moveBy(x: scaledSize.width, y: 0, duration: duration)
-        let reset = SKAction.moveBy(x: -scaledSize.width, y: 0, duration: 0)
-        let loop = SKAction.repeatForever(SKAction.sequence([move, reset]))
-
-        bg1.run(loop)
-        bg2.run(loop)
-
-        addChild(bg1)
-        addChild(bg2)
-        backgroundNodes = [bg1, bg2]
-    }
-
-    private func applyBackgroundBrightness(_ value: CGFloat) {
-        let clamped = max(0, min(1, value))
-        for node in backgroundNodes {
-            node.alpha = 1
-            node.color = .black
-            node.colorBlendFactor = 1 - clamped
-        }
-    }
-
-    private func loadBackgroundBrightness() -> CGFloat {
-        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
-        let value = stored?.doubleValue ?? 0.5
-        return CGFloat(value)
-    }
-
-    private func addMenuBgm() {
-        // BGM is handled by AudioManager.
-    }
-
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
         handleSelection(at: location)
@@ -171,7 +114,6 @@ final class MenuScene: SKScene {
     }
 
     private func route(_ action: MenuAction) {
-        // TODO: hook up routing logic when scenes are ready.
         switch action {
         case .play:
             presentCalibration()
@@ -183,32 +125,23 @@ final class MenuScene: SKScene {
     }
 
     private func presentCalibration() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         AudioManager.shared.stopMenuBgm()
-
+        // Logic for CalibrationScene transition
         let scene = CalibrationScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
 
     private func presentCharacters() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = CharactersScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
 
     private func presentSettings() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = SettingsScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)

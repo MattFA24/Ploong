@@ -14,7 +14,6 @@ final class CharactersScene: SKScene {
     }
 
     private var didSetupLayout = false
-    private var backgroundNodes: [SKSpriteNode] = []
     private var characterNodes: [SKShapeNode] = []
     private var characterLabels: [SKLabelNode] = []
     private var selectedIndex = 2
@@ -37,8 +36,8 @@ final class CharactersScene: SKScene {
     }
 
     private func buildLayout() {
-        addScrollingBackground()
-        applyBackgroundBrightness(loadBackgroundBrightness())
+        // Use the centralized BackgroundManager
+        BackgroundManager.shared.setupBackground(in: self)
 
         let dimmer = SKShapeNode(rectOf: size)
         dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
@@ -168,59 +167,6 @@ final class CharactersScene: SKScene {
         updateSelection(highlightSize: highlightSize)
     }
 
-    private func addScrollingBackground() {
-        let texture = SKTexture(imageNamed: "main_menu_bg")
-        let textureSize = texture.size()
-        guard textureSize.width > 0, textureSize.height > 0 else {
-            return
-        }
-
-        let speed: CGFloat = 18
-        let scale = max(size.width / textureSize.width, size.height / textureSize.height)
-        let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / speed)
-
-        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
-        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
-
-        let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
-        let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
-
-        let centerX = size.width * 0.5
-        let centerY = size.height * 0.5
-        bg1.position = CGPoint(x: centerX + offset, y: centerY)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
-
-        bg1.zPosition = -2
-        bg2.zPosition = -2
-
-        let move = SKAction.moveBy(x: scaledSize.width, y: 0, duration: duration)
-        let reset = SKAction.moveBy(x: -scaledSize.width, y: 0, duration: 0)
-        let loop = SKAction.repeatForever(SKAction.sequence([move, reset]))
-
-        bg1.run(loop)
-        bg2.run(loop)
-
-        addChild(bg1)
-        addChild(bg2)
-        backgroundNodes = [bg1, bg2]
-    }
-
-    private func applyBackgroundBrightness(_ value: CGFloat) {
-        let clamped = max(0, min(1, value))
-        for node in backgroundNodes {
-            node.alpha = 1
-            node.color = .black
-            node.colorBlendFactor = 1 - clamped
-        }
-    }
-
-    private func loadBackgroundBrightness() -> CGFloat {
-        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
-        let value = stored?.doubleValue ?? 0.5
-        return CGFloat(value)
-    }
-
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
         handleSelection(at: location)
@@ -256,7 +202,6 @@ final class CharactersScene: SKScene {
         case .right:
             selectedIndex = min(maxIndex, selectedIndex + 1)
         }
-
         updateSelection(highlightSize: CGSize(width: 110, height: 220))
     }
 
@@ -280,13 +225,7 @@ final class CharactersScene: SKScene {
             selectionIndicator?.position = CGPoint(x: chosen.position.x, y: chosen.position.y + 140)
         }
 
-        if selectedIndex == chosenIndex {
-            selectLabel?.text = "SELECTED"
-            selectLabel?.fontColor = .white
-        } else {
-            selectLabel?.text = "SELECT"
-            selectLabel?.fontColor = .white
-        }
+        selectLabel?.text = (selectedIndex == chosenIndex) ? "SELECTED" : "SELECT"
 
         for (index, label) in characterLabels.enumerated() {
             label.fontColor = index == selectedIndex ? .black : NSColor(white: 0.15, alpha: 1)
@@ -304,10 +243,7 @@ final class CharactersScene: SKScene {
     }
 
     private func presentMenu() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = MenuScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)

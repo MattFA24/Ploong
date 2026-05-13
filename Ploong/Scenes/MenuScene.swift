@@ -29,67 +29,74 @@ final class MenuScene: SKScene {
             buildLayout()
         }
         
-        // Triggers the foam and characters to pop UP when entering the menu
+        // Ensure ornaments pop UP when entering the menu
         BackgroundManager.shared.setOrnamentsVisible(true)
     }
 
     private func buildLayout() {
-        // Setup the endless tiled background (affected by brightness)
-        // and the ornament container (foam + characters @ full brightness)
+        // Setup the endless tiled background and the ornament container
         BackgroundManager.shared.setupBackground(in: self)
         
         AudioManager.shared.playMenuBgm()
 
-        // 1. Logo
-        let title = SKSpriteNode(imageNamed: "menu_logo")
-        title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.80)
+        // 1. Logo Position (Increased from 0.65/0.22 to 0.75/0.28)
+        let titleTexture = SKTexture(imageNamed: "menu_logo")
+        titleTexture.filteringMode = .nearest
+        let title = SKSpriteNode(texture: titleTexture)
+        title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.78)
         title.zPosition = 10
-        scaleSprite(title, maxWidth: size.width * 0.7, maxHeight: size.height * 0.2)
+        scaleSprite(title, maxWidth: size.width * 0.75, maxHeight: size.height * 0.28)
         addChild(title)
 
-        // 2. Highscore
+        // 2. Highscore Label
         let highscore = SKLabelNode(fontNamed: "AvenirNext-Bold")
         highscore.text = "High score : 100.000"
-        highscore.fontSize = 22
+        highscore.fontSize = 24 // Slightly increased font size
         highscore.fontColor = .black
         highscore.verticalAlignmentMode = .center
-        highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.68)
+        highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.62)
         highscore.zPosition = 10
         addChild(highscore)
 
-        // 3. Play Button (The most prominent UI element)
-        let playButton = SKSpriteNode(imageNamed: "play_button")
+        // 3. Play Button (Increased from 0.45/0.18 to 0.55/0.22)
+        let playTexture = SKTexture(imageNamed: "play_button")
+        playTexture.filteringMode = .nearest
+        let playButton = SKSpriteNode(texture: playTexture)
         playButton.name = "play_button"
-        playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
+        playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.45)
         playButton.zPosition = 10
-        scaleSprite(playButton, maxWidth: size.width * 0.55, maxHeight: size.height * 0.18)
+        scaleSprite(playButton, maxWidth: size.width * 0.55, maxHeight: size.height * 0.22)
         addChild(playButton)
 
-        // 4. Secondary Buttons
-        let smallBtnWidth = size.width * 0.45
-        let smallBtnHeight = size.height * 0.08
-
-        let settingsButton = SKSpriteNode(imageNamed: "settings_button")
-        settingsButton.name = "settings_button"
-        settingsButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.35)
-        settingsButton.zPosition = 10
-        scaleSprite(settingsButton, maxWidth: smallBtnWidth, maxHeight: smallBtnHeight)
-        addChild(settingsButton)
-
-        let characterButton = SKSpriteNode(imageNamed: "characters_button")
+        // 4. Characters Button (Increased from 0.42/0.08 to 0.50/0.10)
+        let charTexture = SKTexture(imageNamed: "characters_button")
+        charTexture.filteringMode = .nearest
+        let characterButton = SKSpriteNode(texture: charTexture)
         characterButton.name = "characters_button"
-        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.25)
+        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.28)
         characterButton.zPosition = 10
-        scaleSprite(characterButton, maxWidth: smallBtnWidth, maxHeight: smallBtnHeight)
+        scaleSprite(characterButton, maxWidth: size.width * 0.50, maxHeight: size.height * 0.098)
         addChild(characterButton)
-        
-        // 5. Info Button
-        let infoButton = SKSpriteNode(imageNamed: "info_button")
+
+        // 5. Info Button (Increased from 45 to 55)
+        let infoTexture = SKTexture(imageNamed: "info_button")
+        infoTexture.filteringMode = .nearest
+        let infoButton = SKSpriteNode(texture: infoTexture)
         infoButton.name = "info_button"
-        infoButton.position = CGPoint(x: size.width * 0.92, y: size.height * 0.92)
+        infoButton.position = CGPoint(x: size.width * 0.08, y: size.height * 0.92)
         infoButton.zPosition = 10
-        scaleSprite(infoButton, maxWidth: 45, maxHeight: 45)
+        scaleSprite(infoButton, maxWidth: 55, maxHeight: 55)
         addChild(infoButton)
+        
+        // 6. Settings Button (Increased from 45 to 55)
+        let settingsTexture = SKTexture(imageNamed: "settings_button")
+        settingsTexture.filteringMode = .nearest
+        let settingsButton = SKSpriteNode(texture: settingsTexture)
+        settingsButton.name = "settings_button"
+        settingsButton.position = CGPoint(x: size.width * 0.92, y: size.height * 0.92)
+        settingsButton.zPosition = 10
+        scaleSprite(settingsButton, maxWidth: 55, maxHeight: 55)
+        addChild(settingsButton)
     }
 
     private func scaleSprite(_ sprite: SKSpriteNode, maxWidth: CGFloat, maxHeight: CGFloat) {
@@ -116,19 +123,15 @@ final class MenuScene: SKScene {
     }
 
     private func route(_ action: MenuAction) {
-        // Pop down ornaments before the scene transition
         BackgroundManager.shared.setOrnamentsVisible(false)
         
         let wait = SKAction.wait(forDuration: 0.25)
         let transition = SKAction.run { [weak self] in
             guard let self = self else { return }
             switch action {
-            case .play:
-                self.presentCalibration()
-            case .character:
-                self.presentCharacters()
-            case .settings:
-                self.presentSettings()
+            case .play: self.presentCalibration()
+            case .character: self.presentCharacters()
+            case .settings: self.presentSettings()
             }
         }
         self.run(SKAction.sequence([wait, transition]))

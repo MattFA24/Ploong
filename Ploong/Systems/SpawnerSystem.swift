@@ -78,13 +78,18 @@ final class SpawnerSystem {
         let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
         let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
 
-        // NEW FIX: Simply spawn the enemies 350px behind the gate
-        // This ensures Wave 1's enemies are completely gone before Wave 2's gate arrives!
-        let baseEnemyStartX = gateStartX + 350
+        let gateHalfWidth: CGFloat = 30
+        let enemyHalfWidth: CGFloat = 25
+        let gateSafetyMargin: CGFloat = 60
+        let spacing: CGFloat = count > 3 ? 100 : 80
+        let lineWidth = CGFloat(max(count - 1, 0)) * spacing
+        let baseEnemyStartX = gateStartX + gateHalfWidth + enemyHalfWidth + 295
+        let nextGateForbiddenStartX = gateStartX + (GameConstants.objectSpeed * CGFloat(GameConstants.spawnInterval)) - gateHalfWidth - enemyHalfWidth - gateSafetyMargin
+        let safeDelayedLaneDistance = max(0, nextGateForbiddenStartX - lineWidth - baseEnemyStartX)
 
         // 3. Use GameConstants for the exact calculated enemy Y positions
         if isDoubleLane {
-            let laneDelayDistance: CGFloat = 330
+            let laneDelayDistance = min(330, safeDelayedLaneDistance)
             let pattern = Int.random(in: 0...2)
             let bottomStartX: CGFloat
             let topStartX: CGFloat

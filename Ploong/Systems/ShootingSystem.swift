@@ -29,10 +29,14 @@ final class ShootingSystem {
             let fireInterval = max(0.12, 0.25 - powerRatio * 0.13)
             
             if timeSinceLastShot >= fireInterval {
+                guard let laneY = currentLaneY(for: render.node.position.y) else {
+                    continue
+                }
+
                 timeSinceLastShot = 0
                 
                 let bulletOriginX = render.node.position.x + render.node.frame.width / 2 + 8
-                let bulletPos = CGPoint(x: bulletOriginX, y: render.node.position.y)
+                let bulletPos = CGPoint(x: bulletOriginX, y: laneY)
                 let bullet = BulletEntity(position: bulletPos, damage: component.power)
                 
                 onEntitySpawned?(bullet)
@@ -52,5 +56,19 @@ final class ShootingSystem {
                 ]))
             }
         }
+    }
+
+    private func currentLaneY(for playerY: CGFloat) -> CGFloat? {
+        let laneTolerance: CGFloat = 1
+
+        if abs(playerY - GameConstants.bottomLaneY) <= laneTolerance {
+            return GameConstants.bottomLaneY
+        }
+
+        if abs(playerY - GameConstants.topLaneY) <= laneTolerance {
+            return GameConstants.topLaneY
+        }
+
+        return nil
     }
 }

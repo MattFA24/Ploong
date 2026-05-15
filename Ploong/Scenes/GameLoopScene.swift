@@ -130,6 +130,8 @@ final class GameLoopScene: SKScene {
             GameConstants.gateTopY = (size.height / 2) + (platformSize.height / 2) + (gapHeight / 2)
             // ---------------------------------------
 
+            addBaseSensor()
+
             player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: GameConstants.bottomLaneY))
             
             if let stats = player.component(ofType: StatsComponent.self) {
@@ -141,6 +143,27 @@ final class GameLoopScene: SKScene {
                 renderSystem.addEntity(entity)
             }
             renderSystem.addToScene(self)
+        }
+    
+    private func addBaseSensor() {
+        let enemyHeight: CGFloat = 70
+        let laneSpan = abs(GameConstants.topLaneY - GameConstants.bottomLaneY) + enemyHeight
+        let baseNode = SKNode()
+        baseNode.name = "base"
+        baseNode.position = CGPoint(
+            x: GameConstants.playerX,
+            y: (GameConstants.topLaneY + GameConstants.bottomLaneY) * 0.5
+        )
+
+        let body = SKPhysicsBody(rectangleOf: CGSize(width: 24, height: laneSpan))
+        body.isDynamic = false
+        body.categoryBitMask = PhysicsCategory.base
+        body.contactTestBitMask = PhysicsCategory.enemy
+        body.collisionBitMask = 0
+        baseNode.physicsBody = body
+        addChild(baseNode)
+    }
+
         }
     
     private func setupGestureControl() {

@@ -84,11 +84,27 @@ final class SpawnerSystem {
 
         // 3. Use GameConstants for the exact calculated enemy Y positions
         if isDoubleLane {
+            let laneDelayDistance: CGFloat = 330
+            let pattern = Int.random(in: 0...2)
+            let bottomStartX: CGFloat
+            let topStartX: CGFloat
+
+            switch pattern {
+            case 0:
+                bottomStartX = baseEnemyStartX
+                topStartX = baseEnemyStartX + laneDelayDistance
+            case 1:
+                bottomStartX = baseEnemyStartX + laneDelayDistance
+                topStartX = baseEnemyStartX
+            default:
+                bottomStartX = baseEnemyStartX
+                topStartX = baseEnemyStartX
+            }
+
             spawnLine(laneY: GameConstants.bottomLaneY, baseHP: baseEnemyHP, count: count,
-                      progress: difficultyProgress, startX: baseEnemyStartX)
-            // Second lane 1.5s later = 1.5 * 220 = 330px further right
+                      progress: difficultyProgress, startX: bottomStartX)
             spawnLine(laneY: GameConstants.topLaneY, baseHP: baseEnemyHP, count: count,
-                      progress: difficultyProgress, startX: baseEnemyStartX + 330)
+                      progress: difficultyProgress, startX: topStartX)
         } else {
             let randomLaneY = Bool.random() ? GameConstants.bottomLaneY : GameConstants.topLaneY
             spawnLine(laneY: randomLaneY, baseHP: baseEnemyHP, count: count,

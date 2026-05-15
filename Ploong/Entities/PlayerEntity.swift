@@ -34,7 +34,7 @@ final class PlayerEntity: GameEntity {
         let pb = SKPhysicsBody(rectangleOf: render.node.size)
         pb.isDynamic = true
         pb.categoryBitMask = PhysicsCategory.player
-        pb.contactTestBitMask = PhysicsCategory.gate | PhysicsCategory.enemy
+        pb.contactTestBitMask = PhysicsCategory.gate | PhysicsCategory.enemy | PhysicsCategory.coin
         pb.collisionBitMask = 0
         render.node.physicsBody = pb
         

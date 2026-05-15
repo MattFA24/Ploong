@@ -28,6 +28,7 @@ final class GameLoopScene: SKScene {
         private weak var pauseOverlay: SKNode?
         private weak var pauseModal: SKShapeNode?
         private weak var countdownLabel: SKLabelNode?
+        private weak var coinCounterLabel: SKLabelNode?
 
         private let renderSystem = RenderSystem()
         private var entities: [GKEntity] = []
@@ -52,6 +53,10 @@ final class GameLoopScene: SKScene {
             collisionManager.onPlayerHitEnemy = { [weak self] in
                 self?.stateMachine.enter(PausedState.self)
             }
+
+            collisionManager.onCoinsChanged = { [weak self] count in
+                self?.updateCoinCounter(count)
+            }
             
             // 1. Tell the systems what to do when they spawn an entity!
             let spawnHandler: (GKEntity) -> Void = { [weak self] entity in
@@ -67,6 +72,7 @@ final class GameLoopScene: SKScene {
             spawnerSystem.onEntitySpawned = spawnHandler
             
             setupWorld()
+            buildCoinCounterLabel()
             buildPauseOverlay()
             stateMachine.enter(PlayingState.self)
         }
@@ -100,6 +106,24 @@ final class GameLoopScene: SKScene {
                 }
             }
         }
+
+    private func buildCoinCounterLabel() {
+        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        label.name = "coinCounterLabel"
+        label.fontSize = 24
+        label.fontColor = .black
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: 24, y: size.height - 28)
+        label.zPosition = 90
+        addChild(label)
+        coinCounterLabel = label
+        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+    }
+
+    private func updateCoinCounter(_ count: Int) {
+        coinCounterLabel?.text = "Coin: \(count)"
+    }
     
     private func setupWorld() {
             let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)

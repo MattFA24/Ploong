@@ -29,4 +29,5 @@ struct PhysicsCategory {
     static let enemy: UInt32  = 0x4
     static let bullet: UInt32 = 0x8
     static let base: UInt32   = 0x10
+    static let coin: UInt32   = 0x20
 }

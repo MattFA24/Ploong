@@ -11,6 +11,7 @@ import GameplayKit
 final class CollisionManager: NSObject, SKPhysicsContactDelegate {
     weak var scene: SKScene?
     var onPlayerHitEnemy: (() -> Void)?
+    var onCoinsChanged: ((Int) -> Void)?
     
     func didBegin(_ contact: SKPhysicsContact) {
         let masks = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
@@ -27,9 +28,9 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
             guard let gateNode = gateNode, let playerNode = playerNode else { return }
             
             // Extract the ECS Components attached to these nodes
-            guard let gateEntity = gateNode.entity as? GKEntity,
+            guard let gateEntity = gateNode.entity,
                   let gateComp = gateEntity.component(ofType: GateComponent.self),
-                  let playerEntity = playerNode.entity as? GKEntity,
+                  let playerEntity = playerNode.entity,
                   let statsComp = playerEntity.component(ofType: StatsComponent.self) else { return }
             
             // Remove the gate we touched
@@ -37,7 +38,7 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
             
             // Remove the sibling gate (the one in the other lane from the same wave)
             scene?.enumerateChildNodes(withName: "gate") { node, _ in
-                if let siblingEntity = node.entity as? GKEntity,
+                if let siblingEntity = node.entity,
                    let siblingComp = siblingEntity.component(ofType: GateComponent.self),
                    siblingComp.waveID == gateComp.waveID {
                     node.removeFromParent()
@@ -70,7 +71,27 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
         }
         
         // ==========================================
-        // 2. BULLET HITS AN ENEMY
+        // 2. PLAYER COLLECTS A COIN
+        // ==========================================
+        if masks == (PhysicsCategory.player | PhysicsCategory.coin) {
+            let coinNode = contact.bodyA.categoryBitMask == PhysicsCategory.coin ? nA : nB
+            let playerNode = contact.bodyA.categoryBitMask == PhysicsCategory.player ? nA : nB
+
+            guard let coinNode = coinNode, let playerNode = playerNode else { return }
+
+            guard let coinEntity = coinNode.entity,
+                  let coinComp = coinEntity.component(ofType: CoinComponent.self),
+                  let playerEntity = playerNode.entity,
+                  let statsComp = playerEntity.component(ofType: StatsComponent.self) else { return }
+
+            statsComp.coinsCollected += coinComp.value
+            onCoinsChanged?(statsComp.coinsCollected)
+            AudioManager.shared.playSFX(named: "sfx_coin")
+            coinNode.removeFromParent()
+        }
+
+        // ==========================================
+        // 3. BULLET HITS AN ENEMY
         // ==========================================
         if masks == (PhysicsCategory.bullet | PhysicsCategory.enemy) {
             let bulletNode = contact.bodyA.categoryBitMask == PhysicsCategory.bullet ? nA : nB
@@ -79,9 +100,9 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
             guard let bulletNode = bulletNode, let enemyNode = enemyNode else { return }
             
             // Extract ECS Components
-            guard let bulletEntity = bulletNode.entity as? GKEntity,
+            guard let bulletEntity = bulletNode.entity,
                   let damageComp = bulletEntity.component(ofType: DamageComponent.self),
-                  let enemyEntity = enemyNode.entity as? GKEntity,
+                  let enemyEntity = enemyNode.entity,
                   let hpComp = enemyEntity.component(ofType: HealthComponent.self) else { return }
             
             // Apply Damage
@@ -106,7 +127,7 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
         }
         
         // ==========================================
-        // 3. ENEMY REACHES PLAYER OR BASE (GAME OVER)
+        // 4. ENEMY REACHES PLAYER OR BASE (GAME OVER)
         // ==========================================
         if masks == (PhysicsCategory.player | PhysicsCategory.enemy) || masks == (PhysicsCategory.base | PhysicsCategory.enemy) {
             onPlayerHitEnemy?()

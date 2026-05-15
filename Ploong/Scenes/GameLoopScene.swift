@@ -163,8 +163,6 @@ final class GameLoopScene: SKScene {
         baseNode.physicsBody = body
         addChild(baseNode)
     }
-
-        }
     
     private func setupGestureControl() {
         #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
@@ -444,4 +442,6 @@ final class GameLoopScene: SKScene {
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
+
 }
+

@@ -21,7 +21,7 @@ final class SpawnerSystem {
         timeSurvived += seconds
         timeSinceLastSpawn += seconds
 
-        if timeSinceLastSpawn >= GameConstants.spawnInterval {
+        if timeSinceLastSpawn >= currentSpawnInterval() {
             timeSinceLastSpawn = 0
             spawnWave(size: sceneSize)
         }
@@ -61,31 +61,22 @@ final class SpawnerSystem {
         let g1 = min(applyGate(gate1, to: optimalPower), GameConstants.powerCap)
         optimalPower = max(g0, g1)
 
-        let minutesSurvived = CGFloat(timeSurvived) / 60.0
-        let difficultyProgress = min(1.0, minutesSurvived / 10.0)
-        let margin = 0.80 - (difficultyProgress * 0.75)
-        let endlessBuff = max(1.0, 1.0 + max(0, minutesSurvived - 5.0) * 0.02)
+        let difficultyProgress = difficultyProgress()
+        let margin = 0.65 - (difficultyProgress * 0.45)
+        let endlessBuff = max(1.0, 1.0 + max(0, CGFloat(timeSurvived) - 180.0) / 60.0 * 0.04)
 
-        let minHitsToKill = 3.0 + Double(difficultyProgress) * 5.0
-        let powerRatio = Double(currentPlayerPower / GameConstants.powerCap)
-        let fireInterval = max(0.12, 0.25 - powerRatio * 0.13)
-        let minHP = currentPlayerPower * CGFloat(fireInterval) * CGFloat(minHitsToKill)
-
-        let rawBaseHP = optimalPower * (1.0 - margin) * endlessBuff
-        let baseEnemyHP = max(rawBaseHP, minHP)
+        let minHitsToKill = CGFloat.random(in: targetHitRange())
+        let powerBasedHP = currentPlayerPower * minHitsToKill
+        let optimalBasedHP = optimalPower * (1.0 - margin) * endlessBuff
+        let baseEnemyHP = max(optimalBasedHP, powerBasedHP)
         let count = poopCount()
 
-        let doubleLaneChance = min(1.0, minutesSurvived / 3.0)
-        let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance
+        let isDoubleLane = CGFloat.random(in: 0...1) < doubleLaneChance()
 
-        let gateHalfWidth: CGFloat = 30
-        let enemyHalfWidth: CGFloat = 25
-        let gateSafetyMargin: CGFloat = 60
-        let spacing: CGFloat = count > 3 ? 100 : 80
+        let spacing = enemySpacing(for: count)
         let lineWidth = CGFloat(max(count - 1, 0)) * spacing
-        let baseEnemyStartX = gateStartX + gateHalfWidth + enemyHalfWidth + 295
-        let nextGateForbiddenStartX = gateStartX + (GameConstants.objectSpeed * CGFloat(GameConstants.spawnInterval)) - gateHalfWidth - enemyHalfWidth - gateSafetyMargin
-        let safeDelayedLaneDistance = max(0, nextGateForbiddenStartX - lineWidth - baseEnemyStartX)
+        let baseEnemyStartX = safeEnemyStartX(afterGateAt: gateStartX, lineWidth: lineWidth)
+        let safeDelayedLaneDistance = max(0, GameConstants.objectSpeed * CGFloat(currentSpawnInterval()) - lineWidth - 260)
 
         // 3. Use GameConstants for the exact calculated enemy Y positions
         if isDoubleLane {
@@ -118,9 +109,9 @@ final class SpawnerSystem {
     }
 
     private func spawnLine(laneY: CGFloat, baseHP: CGFloat, count: Int, progress: CGFloat, startX: CGFloat) {
-        let minMod = 0.10 + (progress * 0.75)
-        let maxMod = 1.50 - (progress * 0.45)
-        let spacing: CGFloat = count > 3 ? 100 : 80
+        let minMod = 0.85 + (progress * 0.15)
+        let maxMod = 1.20 + (progress * 0.25)
+        let spacing = enemySpacing(for: count)
 
         for i in 0..<count {
             let modifier = CGFloat.random(in: minMod...maxMod)
@@ -144,12 +135,110 @@ final class SpawnerSystem {
     }
     
     // MARK: - Extracted Math Logic
+    private enum DifficultyStage {
+        case early
+        case mid
+        case late
+
+        var hitRange: ClosedRange<CGFloat> {
+            switch self {
+            case .early: return 2...3
+            case .mid: return 4...6
+            case .late: return 6...9
+            }
+        }
+    }
+
+    private func warmUpProgress() -> CGFloat {
+        min(1.0, CGFloat(timeSurvived) / 30.0)
+    }
+
+    private func targetHitRange() -> ClosedRange<CGFloat> {
+        if timeSurvived < 30 {
+            let progress = warmUpProgress()
+            return (1.5 + progress * 0.5)...(2.2 + progress * 0.8)
+        }
+
+        if timeSurvived < 150 {
+            let progress = CGFloat((timeSurvived - 30) / 120.0)
+            return (2.0 + progress * 0.5)...(3.0 + progress * 0.5)
+        }
+
+        if timeSurvived < 300 {
+            let progress = CGFloat((timeSurvived - 150) / 150.0)
+            return (2.5 + progress * 1.0)...(3.5 + progress * 1.25)
+        }
+
+        let progress = min(1.0, CGFloat((timeSurvived - 300) / 180.0))
+        return (3.5 + progress * 1.0)...(4.75 + progress * 1.25)
+    }
+
+    private func doubleLaneChance() -> CGFloat {
+        if timeSurvived < 30 {
+            let progress = warmUpProgress()
+            return 0.12 + (progress * 0.13)
+        }
+
+        if timeSurvived < 150 {
+            let progress = CGFloat((timeSurvived - 30) / 120.0)
+            return 0.25 + (progress * 0.15)
+        }
+
+        if timeSurvived < 300 {
+            let progress = CGFloat((timeSurvived - 150) / 150.0)
+            return 0.40 + (progress * 0.20)
+        }
+
+        let progress = min(1.0, CGFloat((timeSurvived - 300) / 180.0))
+        return 0.60 + (progress * 0.20)
+    }
+
+    private func stage() -> DifficultyStage {
+        if timeSurvived < 150 { return .early }
+        if timeSurvived < 360 { return .mid }
+        return .late
+    }
+
+    private func difficultyProgress() -> CGFloat {
+        min(1.0, CGFloat(timeSurvived) / 360.0)
+    }
+
+    private func currentSpawnInterval() -> TimeInterval {
+        if timeSurvived < 30 {
+            let progress = TimeInterval(warmUpProgress())
+            return 3.6 - (0.4 * progress)
+        }
+
+        if timeSurvived < 180 {
+            let progress = TimeInterval((timeSurvived - 30) / 150.0)
+            return 3.2 - (0.2 * progress)
+        }
+
+        let progress = min(1.0, TimeInterval((timeSurvived - 180) / 180.0))
+        return 3.1 - (0.1 * progress)
+    }
+
     private func poopCount() -> Int {
-        let fractionalCount = 1.0 + (CGFloat(timeSurvived) / 90.0)
+        let fractionalCount = 2.0 + (CGFloat(timeSurvived) / 120.0)
         let baseCount = Int(fractionalCount)
         let extraChance = fractionalCount - CGFloat(baseCount)
         let isExtra = CGFloat.random(in: 0...1) < extraChance ? 1 : 0
         return min(baseCount + isExtra, 5)
+    }
+
+    private func enemySpacing(for count: Int) -> CGFloat {
+        count > 3 ? 100 : 90
+    }
+
+    private func safeEnemyStartX(afterGateAt gateStartX: CGFloat, lineWidth: CGFloat) -> CGFloat {
+        let gateHalfWidth: CGFloat = 30
+        let enemyHalfWidth: CGFloat = 25
+        let currentGateMargin: CGFloat = 70
+        let nextGateMargin: CGFloat = 75
+        let travelBeforeNextGate = GameConstants.objectSpeed * CGFloat(currentSpawnInterval())
+        let earliestReadableStartX = gateStartX + gateHalfWidth + enemyHalfWidth + currentGateMargin
+        let latestStartXToClearNextGate = gateStartX + travelBeforeNextGate - lineWidth - gateHalfWidth - enemyHalfWidth - nextGateMargin
+        return max(earliestReadableStartX, latestStartXToClearNextGate)
     }
     
     private func snapToTier(_ v: CGFloat) -> CGFloat {
@@ -170,27 +259,37 @@ final class SpawnerSystem {
     }
     
     private func makeGate(isTop: Bool, negative: Bool) -> GateComponent {
-        let minutesSurvived = CGFloat(timeSurvived) / 60.0
+        let currentStage = stage()
+        let progress = difficultyProgress()
         
         if negative {
             if Bool.random() {
                 let ratio: CGFloat
-                if currentPlayerPower > GameConstants.powerCap * 0.8      { ratio = 0.40 }
-                else if currentPlayerPower > GameConstants.powerCap * 0.5 { ratio = 0.30 }
-                else                                                      { ratio = 0.20 }
-                let subValue = snapToTier(currentPlayerPower * ratio)
+                if timeSurvived < 30 {
+                    ratio = currentPlayerPower > 500 ? 0.15 : 0.10
+                } else {
+                    switch currentStage {
+                    case .early:
+                        ratio = currentPlayerPower > 500 ? 0.25 : 0.20
+                    case .mid:
+                        ratio = currentPlayerPower > 2_000 ? 0.35 : 0.30
+                    case .late:
+                        ratio = currentPlayerPower > GameConstants.powerCap * 0.8 ? 0.45 : 0.40
+                    }
+                }
+                let subValue = snapToTier(max(10, currentPlayerPower * ratio))
                 return GateComponent(type: .subtract, value: subValue, text: "-", waveID: 0, lane: 0)
             } else {
-                var divisor: CGFloat = 2
-                if currentPlayerPower > 1_000 && Bool.random() { divisor = 3 }
-                if currentPlayerPower > 3_000 && Bool.random() { divisor = 5 }
-                return GateComponent(type: .divide, value: divisor, text: "/", waveID: 0, lane: 0)
+                var divisorPool: [CGFloat] = [2]
+                if timeSurvived >= 150 && (currentPlayerPower >= 800 || progress >= 0.35) { divisorPool.append(3) }
+                if timeSurvived >= 240 && (currentPlayerPower >= 2_500 || progress >= 0.75) { divisorPool.append(5) }
+                return GateComponent(type: .divide, value: divisorPool.randomElement()!, text: "/", waveID: 0, lane: 0)
             }
         } else {
             if isTop {
-                var pool: [CGFloat] = [2]
-                if minutesSurvived >= 1.0 && optimalPower < 2_000 { pool.append(3) }
-                if minutesSurvived >= 2.0 && optimalPower < 500   { pool.append(5) }
+                var pool: [CGFloat] = [2, 2]
+                if timeSurvived >= 45 && optimalPower < 2_000 { pool.append(3) }
+                if timeSurvived >= 210 && optimalPower < 700 && CGFloat.random(in: 0...1) < 0.25 { pool.append(5) }
                 
                 let safe = pool.filter { optimalPower * $0 <= GameConstants.powerCap }
                 if safe.isEmpty {
@@ -199,11 +298,14 @@ final class SpawnerSystem {
                 return GateComponent(type: .multiply, value: safe.randomElement()!, text: "×", waveID: 0, lane: 0)
             } else {
                 let addValue: CGFloat
-                if minutesSurvived < 0.5      { addValue = [50, 100].randomElement()! }
-                else if minutesSurvived < 1.0 { addValue = [100, 200].randomElement()! }
-                else if minutesSurvived < 2.0 { addValue = [200, 300].randomElement()! }
-                else if optimalPower > 3_000  { addValue = [100, 500].randomElement()! }
-                else                          { addValue = [500, 1_000].randomElement()! }
+                switch currentStage {
+                case .early:
+                    addValue = [50, 100, 150].randomElement()!
+                case .mid:
+                    addValue = optimalPower > 2_500 ? [100, 200, 300].randomElement()! : [200, 300, 500].randomElement()!
+                case .late:
+                    addValue = optimalPower > 3_500 ? [100, 300, 500].randomElement()! : [500, 750, 1_000].randomElement()!
+                }
                 return GateComponent(type: .add, value: addValue, text: "+", waveID: 0, lane: 0)
             }
         }

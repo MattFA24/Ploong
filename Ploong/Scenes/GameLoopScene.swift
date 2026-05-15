@@ -71,6 +71,11 @@ final class GameLoopScene: SKScene {
             stateMachine.enter(PlayingState.self)
         }
 
+        override func didMove(to view: SKView) {
+            super.didMove(to: view)
+            setupGestureControl()
+        }
+
         override func update(_ currentTime: TimeInterval) {
             if lastUpdateTime == 0 { lastUpdateTime = currentTime }
             let deltaTime = currentTime - lastUpdateTime
@@ -159,6 +164,41 @@ final class GameLoopScene: SKScene {
         addChild(baseNode)
     }
 
+        }
+    
+    private func setupGestureControl() {
+        #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+        HandGestureManager.shared.startDetection()
+        HandGestureManager.shared.resetGestureChangeTracking()
+        let applyGesture: (HandGesture) -> Void = { [weak self] gesture in
+            guard let self, self.stateMachine.currentState is PlayingState else {
+                return
+            }
+
+            switch gesture {
+            case .fist:
+                self.movePlayerToLane(y: GameConstants.bottomLaneY)
+            case .point:
+                self.movePlayerToLane(y: GameConstants.topLaneY)
+            case .unrecognized, .unknown:
+                break
+            }
+        }
+
+        HandGestureManager.shared.onGestureChanged = applyGesture
+        applyGesture(HandGestureManager.shared.currentGesture)
+        #endif
+    }
+
+    private func movePlayerToLane(y laneY: CGFloat) {
+        guard let renderNode = player.component(ofType: RenderComponent.self)?.node else {
+            return
+        }
+
+        renderNode.removeAction(forKey: "laneSwitch")
+        renderNode.run(.moveTo(y: laneY, duration: 0.15), withKey: "laneSwitch")
+    }
+
     private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {
         let texture = SKTexture(imageNamed: textureName)
         let textureSize = texture.size()
@@ -178,13 +218,11 @@ final class GameLoopScene: SKScene {
                 
                 // Lane switching logic for Up/Down arrows
                 if stateMachine.currentState is PlayingState {
-                    let renderNode = player.component(ofType: RenderComponent.self)?.node
-                    
                     if event.keyCode == 126 { // Up Arrow
-                        renderNode?.run(.moveTo(y: GameConstants.topLaneY, duration: 0.15))
+                        movePlayerToLane(y: GameConstants.topLaneY)
                     }
                     if event.keyCode == 125 { // Down Arrow
-                        renderNode?.run(.moveTo(y: GameConstants.bottomLaneY, duration: 0.15))
+                        movePlayerToLane(y: GameConstants.bottomLaneY)
                     }
                 }
             }
@@ -385,6 +423,10 @@ final class GameLoopScene: SKScene {
         guard let view = view else {
             return
         }
+
+        #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+        HandGestureManager.shared.resetGestureChangeTracking()
+        #endif
 
         let scene = GameLoopScene(size: size)
         scene.scaleMode = scaleMode

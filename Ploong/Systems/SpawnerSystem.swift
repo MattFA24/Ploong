@@ -10,6 +10,8 @@ import GameplayKit
 
 final class SpawnerSystem {
     private var timeSinceLastSpawn: TimeInterval = 0
+    private var timeSinceLastCoinSpawn: TimeInterval = 0
+    private var nextCoinSpawnInterval = TimeInterval.random(in: 20...30)
     private var waveCount = 0
     private var timeSurvived: TimeInterval = 0
 
@@ -20,10 +22,17 @@ final class SpawnerSystem {
     func update(deltaTime seconds: TimeInterval, sceneSize: CGSize) {
         timeSurvived += seconds
         timeSinceLastSpawn += seconds
+        timeSinceLastCoinSpawn += seconds
 
         if timeSinceLastSpawn >= currentSpawnInterval() {
             timeSinceLastSpawn = 0
             spawnWave(size: sceneSize)
+        }
+
+        if timeSinceLastCoinSpawn >= nextCoinSpawnInterval {
+            timeSinceLastCoinSpawn = 0
+            nextCoinSpawnInterval = TimeInterval.random(in: 20...30)
+            spawnCoin(size: sceneSize)
         }
     }
 
@@ -127,9 +136,25 @@ final class SpawnerSystem {
         }
     }
 
-    private func scrollOff(node: SKNode, distanceX: CGFloat) {
+    private func spawnCoin(size: CGSize) {
+        let lane = Bool.random() ? 1 : 0
+        let laneY = lane == 1 ? GameConstants.topLaneY : GameConstants.bottomLaneY
+        let startX = size.width + 60
+        let coin = CoinEntity(position: CGPoint(x: startX, y: laneY))
+
+        onEntitySpawned?(coin)
+
+        guard let render = coin.component(ofType: RenderComponent.self),
+              let velocity = coin.component(ofType: VelocityComponent.self) else {
+            return
+        }
+
+        scrollOff(node: render.node, distanceX: startX + 100, speed: abs(velocity.velocity.dx))
+    }
+
+    private func scrollOff(node: SKNode, distanceX: CGFloat, speed: CGFloat = GameConstants.objectSpeed) {
         node.run(.sequence([
-            .moveBy(x: -distanceX, y: 0, duration: Double(distanceX / GameConstants.objectSpeed)),
+            .moveBy(x: -distanceX, y: 0, duration: Double(distanceX / speed)),
             .removeFromParent()
         ]))
     }

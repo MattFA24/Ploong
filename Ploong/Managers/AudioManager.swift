@@ -12,6 +12,7 @@ final class AudioManager {
 
     private var menuPlayer: AVAudioPlayer?
     private var gamePlayer: AVAudioPlayer?
+    private var sfxPlayers: [AVAudioPlayer] = []
 
     private init() {}
 
@@ -63,5 +64,22 @@ final class AudioManager {
     func stopGameBgm() {
         gamePlayer?.stop()
         gamePlayer = nil
+    }
+
+    func playSFX(named resourceName: String) {
+        sfxPlayers.removeAll { !$0.isPlaying }
+
+        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp3") else {
+            return
+        }
+
+        do {
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.prepareToPlay()
+            player.play()
+            sfxPlayers.append(player)
+        } catch {
+            return
+        }
     }
 }

@@ -48,7 +48,8 @@ final class MenuScene: SKScene {
         addChild(title)
 
         let highscore = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        highscore.text = "HIGHSCORE: XXX"
+        let savedHighScore = UserDefaults.standard.integer(forKey: "HighScore")
+        highscore.text = "HIGHSCORE: \(savedHighScore)"
         highscore.fontSize = 26
         highscore.fontColor = .black
         highscore.verticalAlignmentMode = .center

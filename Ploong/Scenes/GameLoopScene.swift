@@ -29,6 +29,9 @@ final class GameLoopScene: SKScene {
         private weak var pauseModal: SKShapeNode?
         private weak var countdownLabel: SKLabelNode?
         private weak var coinCounterLabel: SKLabelNode?
+        private weak var scoreLabel: SKLabelNode?
+        private var sessionTime: TimeInterval = 0
+        private var currentScore: Int = 0
 
         private let renderSystem = RenderSystem()
         private var entities: [GKEntity] = []
@@ -51,9 +54,9 @@ final class GameLoopScene: SKScene {
             collisionManager.scene = self
             
             collisionManager.onPlayerHitEnemy = { [weak self] in
-                self?.stateMachine.enter(PausedState.self)
-            }
-
+                            self?.checkAndSaveHighScore() // Save score before pausing/dying
+                            self?.stateMachine.enter(PausedState.self)
+                        }
             collisionManager.onCoinsChanged = { [weak self] count in
                 self?.updateCoinCounter(count)
             }
@@ -73,6 +76,7 @@ final class GameLoopScene: SKScene {
             
             setupWorld()
             buildCoinCounterLabel()
+            buildScoreLabel()
             buildPauseOverlay()
             stateMachine.enter(PlayingState.self)
         }
@@ -82,12 +86,22 @@ final class GameLoopScene: SKScene {
             setupGestureControl()
         }
 
-        override func update(_ currentTime: TimeInterval) {
+    override func update(_ currentTime: TimeInterval) {
             if lastUpdateTime == 0 { lastUpdateTime = currentTime }
             let deltaTime = currentTime - lastUpdateTime
             lastUpdateTime = currentTime
             
             if stateMachine.currentState is PlayingState {
+                
+              
+                sessionTime += deltaTime
+                let newScore = Int(sessionTime * 10)
+                if newScore != currentScore {
+                    currentScore = newScore
+                    updateScoreDisplay(currentScore)
+                }
+                
+                
                 movementSystem.update(deltaTime: deltaTime)
                 shootingSystem.update(deltaTime: deltaTime)
                 
@@ -107,20 +121,52 @@ final class GameLoopScene: SKScene {
             }
         }
 
-    private func buildCoinCounterLabel() {
-        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.name = "coinCounterLabel"
-        label.fontSize = 24
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 24, y: size.height - 28)
-        label.zPosition = 90
-        addChild(label)
-        coinCounterLabel = label
-        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
-    }
+    private func buildScoreLabel() {
+            let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            label.name = "scoreLabel"
+            label.fontSize = 24 // Matched the font size with the coin label
+            label.fontColor = .black
+            label.horizontalAlignmentMode = .left // Align to the left
+            label.verticalAlignmentMode = .center
+            
+            // Placed in the top left corner
+            label.position = CGPoint(x: 24, y: size.height - 28)
+            label.zPosition = 90
+            addChild(label)
+            scoreLabel = label
+            
+            updateScoreDisplay(0)
+        }
 
+        private func updateScoreDisplay(_ score: Int) {
+            scoreLabel?.text = "Score: \(score)"
+        }
+
+        private func buildCoinCounterLabel() {
+            let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            label.name = "coinCounterLabel"
+            label.fontSize = 24
+            label.fontColor = .black
+            label.horizontalAlignmentMode = .left 
+            label.verticalAlignmentMode = .center
+            
+            // Placed exactly 30 pixels below the Score label
+            label.position = CGPoint(x: 24, y: size.height - 58)
+            label.zPosition = 90
+            addChild(label)
+            coinCounterLabel = label
+            
+            updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+        }
+    
+    private func checkAndSaveHighScore() {
+            let currentHighScore = UserDefaults.standard.integer(forKey: "HighScore")
+            if currentScore > currentHighScore {
+                UserDefaults.standard.set(currentScore, forKey: "HighScore")
+            }
+        }
+
+    
     private func updateCoinCounter(_ count: Int) {
         coinCounterLabel?.text = "Coin: \(count)"
     }
@@ -442,6 +488,7 @@ final class GameLoopScene: SKScene {
     }
 
     private func retryGame() {
+        checkAndSaveHighScore()
         guard let view = view else {
             return
         }
@@ -456,6 +503,8 @@ final class GameLoopScene: SKScene {
     }
 
     private func quitToMenu() {
+        checkAndSaveHighScore()
+        
         guard let view = view else {
             return
         }

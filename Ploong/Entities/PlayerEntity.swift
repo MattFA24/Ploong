@@ -9,29 +9,40 @@ import SpriteKit
 import GameplayKit
 
 final class PlayerEntity: GameEntity {
+    enum Layout {
+        static let hitboxSize = CGSize(width: 50, height: 70)
+        static let sourceTextureSize = CGSize(width: 288, height: 225)
+        static let visualHeight: CGFloat = 160
+        static let visualSize = CGSize(
+            width: sourceTextureSize.width * (visualHeight / sourceTextureSize.height),
+            height: visualHeight
+        )
+        static let visualHalfHeight = visualSize.height * 0.5
+        static let hitboxCenter = CGPoint(
+            x: 0,
+            y: (-visualSize.height + hitboxSize.height) * 0.5
+        )
+        static let bulletSpawnOffset = CGPoint(
+            x: visualSize.width * 0.3,
+            y: -visualSize.height * 0.08
+        )
+    }
+
     init(position: CGPoint) {
         super.init()
         
         // 1. Setup Render Node
-        let render = RenderComponent(color: .init(red: 0.95, green: 0.50, blue: 0.50, alpha: 1), size: CGSize(width: 50, height: 70))
+        let render = RenderComponent(textureName: "joy_1", size: Layout.visualSize)
         render.node.position = position
         render.node.zPosition = 10
-        
-        // CRUCIAL FIX: Link the node back to this entity so CollisionManager can find StatsComponent
+        render.node.texture?.filteringMode = .nearest
+        render.node.run(JoyAnimation.idleAction(), withKey: "joyIdleAnimation")
         render.node.entity = self
-        
-        // 1.5 Setup Power Text Label
-        let powerLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        powerLbl.name = "powerText"
-        powerLbl.text = "10"
-        powerLbl.fontSize = 15
-        powerLbl.fontColor = .red
-        powerLbl.zPosition = 1 // Make sure it sits above the player square
-        powerLbl.position = CGPoint(x: 0, y: render.node.size.height / 2 + 10)
-        render.node.addChild(powerLbl)
+
+        addPowerLabel(to: render.node)
         
         // 2. Setup Physics Body
-        let pb = SKPhysicsBody(rectangleOf: render.node.size)
+        let pb = SKPhysicsBody(rectangleOf: Layout.hitboxSize, center: Layout.hitboxCenter)
         pb.isDynamic = true
         pb.categoryBitMask = PhysicsCategory.player
         pb.contactTestBitMask = PhysicsCategory.gate | PhysicsCategory.enemy
@@ -48,5 +59,16 @@ final class PlayerEntity: GameEntity {
     
     required init?(coder: NSCoder) {
         super.init(coder: coder)
+    }
+
+    private func addPowerLabel(to node: SKNode) {
+        let powerLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        powerLbl.name = "powerText"
+        powerLbl.text = "10"
+        powerLbl.fontSize = 18
+        powerLbl.fontColor = .red
+        powerLbl.zPosition = 2
+        powerLbl.position = CGPoint(x: +Layout.visualSize.width * 0.3, y: Layout.visualHalfHeight + 15)
+        node.addChild(powerLbl)
     }
 }

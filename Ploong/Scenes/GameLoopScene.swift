@@ -111,7 +111,7 @@ final class GameLoopScene: SKScene {
             let bottomRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
 
             // --- PIXEL PERFECT MATH CALCULATIONS ---
-            let characterHalfHeight: CGFloat = 35
+            let characterHalfHeight = PlayerEntity.Layout.visualHalfHeight
             
             // Fix: Explicitly define the visible height of the bottom tiles (approx 115px)
             // If the character is still slightly floating or sinking, just tweak this number!

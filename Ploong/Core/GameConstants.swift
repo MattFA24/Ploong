@@ -9,7 +9,7 @@ import Foundation
 import CoreGraphics
 
 enum GameConstants {
-    static let playerX: CGFloat = 140
+    static let playerX: CGFloat = 104
     static var bottomLaneY: CGFloat = 180
     static var topLaneY: CGFloat = 460
     static var gateHeight: CGFloat = 260

@@ -60,7 +60,7 @@ final class ShootingSystem {
     }
 
     private func currentLaneY(for playerY: CGFloat) -> CGFloat? {
-        let laneTolerance: CGFloat = 1
+        let laneTolerance: CGFloat = 50.0
 
         if abs(playerY - GameConstants.bottomLaneY) <= laneTolerance {
             return GameConstants.bottomLaneY

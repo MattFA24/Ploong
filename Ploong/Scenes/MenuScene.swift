@@ -15,7 +15,6 @@ final class MenuScene: SKScene {
     }
 
     private var didSetupLayout = false
-    private var backgroundNodes: [SKSpriteNode] = []
 
     override func sceneDidLoad() {
         super.sceneDidLoad()
@@ -29,22 +28,24 @@ final class MenuScene: SKScene {
             didSetupLayout = true
             buildLayout()
         }
+        
+        // Ensure ornaments pop UP when entering the menu
+        BackgroundManager.shared.setOrnamentsVisible(true)
     }
 
     private func buildLayout() {
-        addScrollingBackground()
-        applyBackgroundBrightness(loadBackgroundBrightness())
+        // Setup the endless tiled background and the ornament container
+        BackgroundManager.shared.setupBackground(in: self)
+        
         AudioManager.shared.playMenuBgm()
 
-        let title = SKSpriteNode(imageNamed: "menu_logo")
+        // 1. Logo Position (Increased from 0.65/0.22 to 0.75/0.28)
+        let titleTexture = SKTexture(imageNamed: "menu_logo")
+        titleTexture.filteringMode = .nearest
+        let title = SKSpriteNode(texture: titleTexture)
         title.position = CGPoint(x: size.width * 0.5, y: size.height * 0.78)
-        title.zPosition = 1
-        if title.size.width > 0, title.size.height > 0 {
-            let maxWidth = size.width * 0.6
-            let maxHeight = size.height * 0.18
-            let scale = min(maxWidth / title.size.width, maxHeight / title.size.height)
-            title.setScale(scale)
-        }
+        title.zPosition = 10
+        scaleSprite(title, maxWidth: size.width * 0.75, maxHeight: size.height * 0.28)
         addChild(title)
 
         let highscore = SKLabelNode(fontNamed: "AvenirNext-Medium")
@@ -53,98 +54,55 @@ final class MenuScene: SKScene {
         highscore.fontSize = 26
         highscore.fontColor = .black
         highscore.verticalAlignmentMode = .center
-        highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.68)
+        highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.62)
+        highscore.zPosition = 10
         addChild(highscore)
 
-        let buttonMaxWidth = size.width * 0.36
-        let buttonMaxHeight = size.height * 0.09
-
-        let playButton = SKSpriteNode(imageNamed: "play_button")
+        // 3. Play Button (Increased from 0.45/0.18 to 0.55/0.22)
+        let playTexture = SKTexture(imageNamed: "play_button")
+        playTexture.filteringMode = .nearest
+        let playButton = SKSpriteNode(texture: playTexture)
         playButton.name = "play_button"
-        playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.50)
-        playButton.zPosition = 1
-        scaleSprite(playButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
+        playButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.45)
+        playButton.zPosition = 10
+        scaleSprite(playButton, maxWidth: size.width * 0.55, maxHeight: size.height * 0.22)
         addChild(playButton)
 
-        let characterButton = SKSpriteNode(imageNamed: "characters_button")
+        // 4. Characters Button (Increased from 0.42/0.08 to 0.50/0.10)
+        let charTexture = SKTexture(imageNamed: "characters_button")
+        charTexture.filteringMode = .nearest
+        let characterButton = SKSpriteNode(texture: charTexture)
         characterButton.name = "characters_button"
-        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.34)
-        characterButton.zPosition = 1
-        scaleSprite(characterButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
+        characterButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.28)
+        characterButton.zPosition = 10
+        scaleSprite(characterButton, maxWidth: size.width * 0.50, maxHeight: size.height * 0.098)
         addChild(characterButton)
 
-        let settingsButton = SKSpriteNode(imageNamed: "settings_button")
+        // 5. Info Button (Increased from 45 to 55)
+        let infoTexture = SKTexture(imageNamed: "info_button")
+        infoTexture.filteringMode = .nearest
+        let infoButton = SKSpriteNode(texture: infoTexture)
+        infoButton.name = "info_button"
+        infoButton.position = CGPoint(x: size.width * 0.08, y: size.height * 0.92)
+        infoButton.zPosition = 10
+        scaleSprite(infoButton, maxWidth: 55, maxHeight: 55)
+        addChild(infoButton)
+        
+        // 6. Settings Button (Increased from 45 to 55)
+        let settingsTexture = SKTexture(imageNamed: "settings_button")
+        settingsTexture.filteringMode = .nearest
+        let settingsButton = SKSpriteNode(texture: settingsTexture)
         settingsButton.name = "settings_button"
-        settingsButton.position = CGPoint(x: size.width * 0.5, y: size.height * 0.24)
-        settingsButton.zPosition = 1
-        scaleSprite(settingsButton, maxWidth: buttonMaxWidth, maxHeight: buttonMaxHeight)
+        settingsButton.position = CGPoint(x: size.width * 0.92, y: size.height * 0.92)
+        settingsButton.zPosition = 10
+        scaleSprite(settingsButton, maxWidth: 55, maxHeight: 55)
         addChild(settingsButton)
     }
 
     private func scaleSprite(_ sprite: SKSpriteNode, maxWidth: CGFloat, maxHeight: CGFloat) {
-        guard sprite.size.width > 0, sprite.size.height > 0 else {
-            return
-        }
-
+        guard sprite.size.width > 0, sprite.size.height > 0 else { return }
         let scale = min(maxWidth / sprite.size.width, maxHeight / sprite.size.height)
         sprite.setScale(scale)
-    }
-
-    private func addScrollingBackground() {
-        let texture = SKTexture(imageNamed: "main_menu_bg")
-        let textureSize = texture.size()
-        guard textureSize.width > 0, textureSize.height > 0 else {
-            return
-        }
-
-        let speed: CGFloat = 18
-        let scale = max(size.width / textureSize.width, size.height / textureSize.height)
-        let scaledSize = CGSize(width: textureSize.width * scale, height: textureSize.height * scale)
-        let duration = TimeInterval(scaledSize.width / speed)
-
-        let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
-        let offset = (elapsed * speed).truncatingRemainder(dividingBy: scaledSize.width)
-
-        let bg1 = SKSpriteNode(texture: texture, size: scaledSize)
-        let bg2 = SKSpriteNode(texture: texture, size: scaledSize)
-
-        let centerX = size.width * 0.5
-        let centerY = size.height * 0.5
-        bg1.position = CGPoint(x: centerX + offset, y: centerY)
-        bg2.position = CGPoint(x: bg1.position.x - scaledSize.width, y: centerY)
-
-        bg1.zPosition = -2
-        bg2.zPosition = -2
-
-        let move = SKAction.moveBy(x: scaledSize.width, y: 0, duration: duration)
-        let reset = SKAction.moveBy(x: -scaledSize.width, y: 0, duration: 0)
-        let loop = SKAction.repeatForever(SKAction.sequence([move, reset]))
-
-        bg1.run(loop)
-        bg2.run(loop)
-
-        addChild(bg1)
-        addChild(bg2)
-        backgroundNodes = [bg1, bg2]
-    }
-
-    private func applyBackgroundBrightness(_ value: CGFloat) {
-        let clamped = max(0, min(1, value))
-        for node in backgroundNodes {
-            node.alpha = 1
-            node.color = .black
-            node.colorBlendFactor = 1 - clamped
-        }
-    }
-
-    private func loadBackgroundBrightness() -> CGFloat {
-        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
-        let value = stored?.doubleValue ?? 0.5
-        return CGFloat(value)
-    }
-
-    private func addMenuBgm() {
-        // BGM is handled by AudioManager.
     }
 
     override func mouseDown(with event: NSEvent) {
@@ -157,59 +115,45 @@ final class MenuScene: SKScene {
 
         if nodesAtPoint.contains(where: { $0.name == "play_button" }) {
             route(.play)
-            return
-        }
-
-        if nodesAtPoint.contains(where: { $0.name == "characters_button" }) {
+        } else if nodesAtPoint.contains(where: { $0.name == "characters_button" }) {
             route(.character)
-            return
-        }
-
-        if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
+        } else if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
             route(.settings)
-            return
         }
     }
 
     private func route(_ action: MenuAction) {
-        // TODO: hook up routing logic when scenes are ready.
-        switch action {
-        case .play:
-            presentCalibration()
-        case .character:
-            presentCharacters()
-        case .settings:
-            presentSettings()
+        BackgroundManager.shared.setOrnamentsVisible(false)
+        
+        let wait = SKAction.wait(forDuration: 0.25)
+        let transition = SKAction.run { [weak self] in
+            guard let self = self else { return }
+            switch action {
+            case .play: self.presentCalibration()
+            case .character: self.presentCharacters()
+            case .settings: self.presentSettings()
+            }
         }
+        self.run(SKAction.sequence([wait, transition]))
     }
 
     private func presentCalibration() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         AudioManager.shared.stopMenuBgm()
-
         let scene = CalibrationScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
 
     private func presentCharacters() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = CharactersScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
 
     private func presentSettings() {
-        guard let view = view else {
-            return
-        }
-
+        guard let view = view else { return }
         let scene = SettingsScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)

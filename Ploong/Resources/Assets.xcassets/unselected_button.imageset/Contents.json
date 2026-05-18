@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "settbut.png",
+      "filename" : "unselected_button.png",
       "idiom" : "universal",
       "scale" : "1x"
     },

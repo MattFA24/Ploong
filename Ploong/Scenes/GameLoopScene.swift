@@ -1,8 +1,8 @@
 //
-//  GameLoopScene.swift
-//  Ploong
+//   GameLoopScene.swift
+//   Ploong
 //
-//  Created by Matthew Fernando Anggrian on 11/05/26.
+//   Created by Matthew Fernando Anggrian on 11/05/26.
 //
 
 import SpriteKit
@@ -29,16 +29,7 @@ final class GameLoopScene: SKScene {
     private weak var pauseModal: SKSpriteNode?
     private weak var countdownLabel: SKLabelNode?
     
-    private weak var coinCounterLabel: SKLabelNode?
-    private weak var scoreLabel: SKLabelNode?
-    private var sessionTime: TimeInterval = 0
-    private var currentScore: Int = 0
-
-    private weak var pauseOverlay: SKNode?
-    private weak var pauseModal: SKSpriteNode?
-    private weak var countdownLabel: SKLabelNode?
-    
-    // Split into distinct title/value labels for pixel-perfect vertical alignment
+    // Pixel-perfect vertical alignment properties
     private weak var scoreValueLabel: SKLabelNode?
     private weak var coinValueLabel: SKLabelNode?
     
@@ -52,7 +43,7 @@ final class GameLoopScene: SKScene {
     private let shootingSystem = ShootingSystem()
     private let spawnerSystem = SpawnerSystem()
     private let collisionManager = CollisionManager()
-    private var safeZoneSystem: SafeZoneSystem! // ADDED
+    private var safeZoneSystem: SafeZoneSystem!
     
     private var player: PlayerEntity!
     private var lastUpdateTime: TimeInterval = 0
@@ -99,9 +90,6 @@ final class GameLoopScene: SKScene {
         
         setupWorld()
         buildGameHUD()
-        buildCoinCounterLabel()
-        buildScoreLabel()
-        buildPauseOverlay()
         stateMachine.enter(PlayingState.self)
     }
 
@@ -125,15 +113,20 @@ final class GameLoopScene: SKScene {
             
             movementSystem.update(deltaTime: deltaTime)
             shootingSystem.update(deltaTime: deltaTime)
+            safeZoneSystem.update(deltaTime: deltaTime)
             
             if let stats = player.component(ofType: StatsComponent.self) {
                 spawnerSystem.currentPlayerPower = stats.power
             }
             spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
             
-            let _ = entities.removeAll { entity in
+            entities.removeAll { entity in
                 if let render = entity.component(ofType: RenderComponent.self) {
-                    return render.node.parent == nil
+                    if render.node.parent == nil {
+                        self.safeZoneSystem.removeComponent(render)
+                        return true
+                    }
+                    return false
                 }
                 return false
             }
@@ -142,16 +135,16 @@ final class GameLoopScene: SKScene {
 
     // MARK: - Pixel Art HUD Builder
     private func buildGameHUD() {
-        // --- HUD LAYOUT TWEAKABLES: Adjust grid alignment right here ---
+        // --- HUD LAYOUT TWEAKABLES ---
         let scoreBoxScale: CGFloat = 0.70
         let scoreBoxPosition = CGPoint(x: 150, y: size.height - 70)
         
         let hudFontSize: CGFloat = 16.0
-        let titleColumnX: CGFloat = scoreBoxPosition.x - 75  // Safe left edge for labels
-        let valueColumnX: CGFloat = scoreBoxPosition.x + 75  // Safe right edge for numbers
+        let titleColumnX: CGFloat = scoreBoxPosition.x - 75
+        let valueColumnX: CGFloat = scoreBoxPosition.x + 75
         
-        let rowScoreY: CGFloat = scoreBoxPosition.y + 10     // Top row height
-        let rowCoinY: CGFloat = scoreBoxPosition.y - 12      // Bottom row height
+        let rowScoreY: CGFloat = scoreBoxPosition.y + 10
+        let rowCoinY: CGFloat = scoreBoxPosition.y - 12
         
         let pauseHintScale: CGFloat = 0.85
         let pauseHintPosition = CGPoint(x: size.width - 170, y: size.height - 60)
@@ -180,7 +173,7 @@ final class GameLoopScene: SKScene {
         let scoreVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
         scoreVal.fontSize = hudFontSize
         scoreVal.fontColor = .black
-        scoreVal.horizontalAlignmentMode = .right  // Right-aligned to lock placement
+        scoreVal.horizontalAlignmentMode = .right
         scoreVal.verticalAlignmentMode = .center
         scoreVal.position = CGPoint(x: valueColumnX, y: rowScoreY)
         scoreVal.zPosition = 90
@@ -192,7 +185,7 @@ final class GameLoopScene: SKScene {
         coinTitle.text = "coin"
         coinTitle.fontSize = hudFontSize
         coinTitle.fontColor = .black
-        coinTitle.horizontalAlignmentMode = .left   // Perfectly flush underneath "score"
+        coinTitle.horizontalAlignmentMode = .left
         coinTitle.verticalAlignmentMode = .center
         coinTitle.position = CGPoint(x: titleColumnX, y: rowCoinY)
         coinTitle.zPosition = 90
@@ -201,7 +194,7 @@ final class GameLoopScene: SKScene {
         let coinVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
         coinVal.fontSize = hudFontSize
         coinVal.fontColor = .black
-        coinVal.horizontalAlignmentMode = .right   // Perfectly flush underneath the score digits
+        coinVal.horizontalAlignmentMode = .right
         coinVal.verticalAlignmentMode = .center
         coinVal.position = CGPoint(x: valueColumnX, y: rowCoinY)
         coinVal.zPosition = 90
@@ -228,38 +221,14 @@ final class GameLoopScene: SKScene {
         hintTextSprite.setScale(pauseHintScale)
         hintTextSprite.zPosition = 90
         addChild(hintTextSprite)
-    }
-
-    private func updateScoreDisplay(_ score: Int) {
-        scoreValueLabel?.text = "\(score)"
-            }
-            
-            movementSystem.update(deltaTime: deltaTime)
-            shootingSystem.update(deltaTime: deltaTime)
-            safeZoneSystem.update(deltaTime: deltaTime) // ADDED
-            
-            if let stats = player.component(ofType: StatsComponent.self) {
-                spawnerSystem.currentPlayerPower = stats.power
-            }
-            spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
-            
-            entities.removeAll { entity in
-                if let render = entity.component(ofType: RenderComponent.self) {
-                    if render.node.parent == nil {
-                        self.safeZoneSystem.removeComponent(render)
-                        return true
-                    }
-                    return false
-                }
-                return false
-            }
-        }
+        
+        buildPauseOverlay()
     }
 
     // MARK: - Game Over Transition
     private func transitionToGameOver() {
         physicsWorld.speed = 0 // Freeze the game world
-        checkAndSaveHighScore() // Save score before transitioning
+        checkAndSaveHighScore()
         
         guard let view = self.view else { return }
         
@@ -267,45 +236,18 @@ final class GameLoopScene: SKScene {
         HandGestureManager.shared.resetGestureChangeTracking()
         #endif
         
-        // Present the new GameOverScene
         let gameOverScene = GameOverScene(size: self.size, score: self.currentScore)
         gameOverScene.scaleMode = self.scaleMode
         view.presentScene(gameOverScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 
-    // MARK: - Labels & Saving
-    private func buildScoreLabel() {
-        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.name = "scoreLabel"
-        label.fontSize = 24
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 24, y: size.height - 28)
-        label.zPosition = 90
-        addChild(label)
-        scoreLabel = label
-        
-        updateScoreDisplay(0)
-    }
-
+    // MARK: - UI Mutators & Saving
     private func updateScoreDisplay(_ score: Int) {
-        scoreLabel?.text = "Score: \(score)"
+        scoreValueLabel?.text = "\(score)"
     }
 
-    private func buildCoinCounterLabel() {
-        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.name = "coinCounterLabel"
-        label.fontSize = 24
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 24, y: size.height - 58)
-        label.zPosition = 90
-        addChild(label)
-        coinCounterLabel = label
-        
-        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+    private func updateCoinCounter(_ count: Int) {
+        coinValueLabel?.text = "\(count)"
     }
     
     private func checkAndSaveHighScore() {
@@ -313,10 +255,6 @@ final class GameLoopScene: SKScene {
         if currentScore > currentHighScore {
             UserDefaults.standard.set(currentScore, forKey: "HighScore")
         }
-    }
-
-    private func updateCoinCounter(_ count: Int) {
-        coinValueLabel?.text = "\(count)"
     }
     
     // MARK: - World Setup
@@ -418,6 +356,7 @@ final class GameLoopScene: SKScene {
         return CGSize(width: width, height: textureSize.height * scale)
     }
 
+    // MARK: - Input Controls
     override func keyUp(with event: NSEvent) {}
 
     override func keyDown(with event: NSEvent) {
@@ -632,9 +571,7 @@ final class GameLoopScene: SKScene {
 
     private func quitToMenu() {
         checkAndSaveHighScore()
-        guard let view = view else {
-            return
-        }
+        guard let view = view else { return }
 
         AudioManager.shared.stopGameBgm()
 

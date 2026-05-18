@@ -12,24 +12,45 @@ final class GateEntity: GameEntity {
     init(position: CGPoint, gateData: GateComponent) {
         super.init()
         
-        let w: CGFloat = 60
-        // Update the height to use our new Gate height constant
-        let render = RenderComponent(color: SKColor.gray.withAlphaComponent(0.3), size: CGSize(width: w, height: GameConstants.gateHeight))
+        // --- GATE VISUAL TWEAKABLES ---
+        let gateWidth: CGFloat = 90.0
+        let verticalPadding: CGFloat = 16.0
+        // -------------------------------
+        
+        let adjustedHeight = GameConstants.gateHeight - verticalPadding
+        
+        // 1. Prepare the custom pixel art texture
+        let gateTexture = SKTexture(imageNamed: "main_multi_bg")
+        gateTexture.filteringMode = .nearest
+        
+        // 2. Initialize your RenderComponent with the safe padded size bounds
+        let render = RenderComponent(color: .clear, size: CGSize(width: gateWidth, height: adjustedHeight))
+        
+        // 3. Apply the texture cleanly onto the node canvas frame
+        if let spriteNode = render.node as? SKSpriteNode {
+            spriteNode.texture = gateTexture
+            spriteNode.color = .white
+        }
+        
         render.node.position = position
         render.node.zPosition = 5
         render.node.name = "gate"
-        
         render.node.entity = self
         
+        // 4. Mathematics text layout
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
         lbl.text = "\(gateData.text)\(Int(gateData.value))"
         lbl.fontSize = 26
-        lbl.fontColor = (gateData.type == .multiply || gateData.type == .add) ? SKColor(red: 0.0, green: 0.45, blue: 0.1, alpha: 1) : SKColor(red: 0.7, green: 0.1, blue: 0.1, alpha: 1)
+        lbl.fontColor = .white
         lbl.verticalAlignmentMode = .center
+        
+        // FIX: Explicitly force the text layer to sit in front of the gate texture
+        lbl.zPosition = 1
+        
         render.node.addChild(lbl)
         
-        // Update physics body height
-        let pb = SKPhysicsBody(rectangleOf: CGSize(width: w * 0.8, height: GameConstants.gateHeight))
+        // 5. Physics bounding matches the new wider sprite volume perfectly
+        let pb = SKPhysicsBody(rectangleOf: CGSize(width: gateWidth * 0.8, height: adjustedHeight))
         pb.isDynamic = false
         pb.categoryBitMask = PhysicsCategory.gate
         pb.contactTestBitMask = PhysicsCategory.player

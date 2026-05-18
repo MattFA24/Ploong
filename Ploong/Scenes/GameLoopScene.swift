@@ -20,10 +20,19 @@ final class GameLoopScene: SKScene {
     }
 
     private lazy var stateMachine = GKStateMachine(states: [
-            PlayingState(scene: self),
-            PausedState(scene: self),
-            CountdownState(scene: self)
-        ])
+        PlayingState(scene: self),
+        PausedState(scene: self),
+        CountdownState(scene: self)
+    ])
+
+    private weak var pauseOverlay: SKNode?
+    private weak var pauseModal: SKSpriteNode?
+    private weak var countdownLabel: SKLabelNode?
+    
+    private weak var coinCounterLabel: SKLabelNode?
+    private weak var scoreLabel: SKLabelNode?
+    private var sessionTime: TimeInterval = 0
+    private var currentScore: Int = 0
 
     private weak var pauseOverlay: SKNode?
     private weak var pauseModal: SKSpriteNode?
@@ -43,6 +52,7 @@ final class GameLoopScene: SKScene {
     private let shootingSystem = ShootingSystem()
     private let spawnerSystem = SpawnerSystem()
     private let collisionManager = CollisionManager()
+    private var safeZoneSystem: SafeZoneSystem! // ADDED
     
     private var player: PlayerEntity!
     private var lastUpdateTime: TimeInterval = 0
@@ -56,20 +66,31 @@ final class GameLoopScene: SKScene {
         physicsWorld.contactDelegate = collisionManager
         collisionManager.scene = self
         
-        collisionManager.onPlayerHitEnemy = { [weak self] in
-            self?.checkAndSaveHighScore()
-            self?.stateMachine.enter(PausedState.self)
+        // Setup Safe Zone System
+        safeZoneSystem = SafeZoneSystem(safeZoneX: 50, stateMachine: stateMachine, scene: self)
+        safeZoneSystem.onSafeZoneBreached = { [weak self] in
+            self?.transitionToGameOver()
         }
+        
+        // Transition to GameOverScene on hit
+        collisionManager.onPlayerHitEnemy = { [weak self] in
+            self?.transitionToGameOver()
+        }
+        
         collisionManager.onCoinsChanged = { [weak self] count in
             self?.updateCoinCounter(count)
         }
         
+        // Tell the systems what to do when they spawn an entity
         let spawnHandler: (GKEntity) -> Void = { [weak self] entity in
             guard let self = self else { return }
             self.entities.append(entity)
             self.renderSystem.addEntity(entity)
+            
+            // Register entity with appropriate systems
             if let render = entity.component(ofType: RenderComponent.self) {
                 render.addToScene(self)
+                self.safeZoneSystem.addComponent(render)
             }
         }
         
@@ -78,6 +99,8 @@ final class GameLoopScene: SKScene {
         
         setupWorld()
         buildGameHUD()
+        buildCoinCounterLabel()
+        buildScoreLabel()
         buildPauseOverlay()
         stateMachine.enter(PlayingState.self)
     }
@@ -209,6 +232,80 @@ final class GameLoopScene: SKScene {
 
     private func updateScoreDisplay(_ score: Int) {
         scoreValueLabel?.text = "\(score)"
+            }
+            
+            movementSystem.update(deltaTime: deltaTime)
+            shootingSystem.update(deltaTime: deltaTime)
+            safeZoneSystem.update(deltaTime: deltaTime) // ADDED
+            
+            if let stats = player.component(ofType: StatsComponent.self) {
+                spawnerSystem.currentPlayerPower = stats.power
+            }
+            spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
+            
+            entities.removeAll { entity in
+                if let render = entity.component(ofType: RenderComponent.self) {
+                    if render.node.parent == nil {
+                        self.safeZoneSystem.removeComponent(render)
+                        return true
+                    }
+                    return false
+                }
+                return false
+            }
+        }
+    }
+
+    // MARK: - Game Over Transition
+    private func transitionToGameOver() {
+        physicsWorld.speed = 0 // Freeze the game world
+        checkAndSaveHighScore() // Save score before transitioning
+        
+        guard let view = self.view else { return }
+        
+        #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+        HandGestureManager.shared.resetGestureChangeTracking()
+        #endif
+        
+        // Present the new GameOverScene
+        let gameOverScene = GameOverScene(size: self.size, score: self.currentScore)
+        gameOverScene.scaleMode = self.scaleMode
+        view.presentScene(gameOverScene, transition: SKTransition.crossFade(withDuration: 0.5))
+    }
+
+    // MARK: - Labels & Saving
+    private func buildScoreLabel() {
+        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        label.name = "scoreLabel"
+        label.fontSize = 24
+        label.fontColor = .black
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: 24, y: size.height - 28)
+        label.zPosition = 90
+        addChild(label)
+        scoreLabel = label
+        
+        updateScoreDisplay(0)
+    }
+
+    private func updateScoreDisplay(_ score: Int) {
+        scoreLabel?.text = "Score: \(score)"
+    }
+
+    private func buildCoinCounterLabel() {
+        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        label.name = "coinCounterLabel"
+        label.fontSize = 24
+        label.fontColor = .black
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: 24, y: size.height - 58)
+        label.zPosition = 90
+        addChild(label)
+        coinCounterLabel = label
+        
+        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
     }
     
     private func checkAndSaveHighScore() {
@@ -222,6 +319,7 @@ final class GameLoopScene: SKScene {
         coinValueLabel?.text = "\(count)"
     }
     
+    // MARK: - World Setup
     private func setupWorld() {
         let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)
         let platformSize = scaledSize(for: "mid_platform", width: size.width)
@@ -365,6 +463,7 @@ final class GameLoopScene: SKScene {
         startCountdown()
     }
 
+    // MARK: - Pause UI
     private func buildPauseOverlay() {
         let overlay = SKNode()
         overlay.name = NodeName.pauseOverlay.rawValue
@@ -493,7 +592,10 @@ final class GameLoopScene: SKScene {
     }
 
     private func handlePauseOverlaySelection(at location: CGPoint) {
+        guard pauseOverlay?.isHidden == false else { return }
+
         let nodesAtPoint = nodes(at: location)
+        
         if containsNode(named: .pauseResume, in: nodesAtPoint) {
             stateMachine.enter(CountdownState.self)
             return
@@ -517,9 +619,7 @@ final class GameLoopScene: SKScene {
 
     private func retryGame() {
         checkAndSaveHighScore()
-        guard let view = view else {
-            return
-        }
+        guard let view = view else { return }
 
         #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
         HandGestureManager.shared.resetGestureChangeTracking()

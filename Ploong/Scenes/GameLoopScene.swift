@@ -26,7 +26,7 @@ final class GameLoopScene: SKScene {
         ])
 
         private weak var pauseOverlay: SKNode?
-        private weak var pauseModal: SKShapeNode?
+        private weak var pauseModal: SKSpriteNode?
         private weak var countdownLabel: SKLabelNode?
         private weak var coinCounterLabel: SKLabelNode?
         private weak var scoreLabel: SKLabelNode?
@@ -325,6 +325,11 @@ final class GameLoopScene: SKScene {
     }
 
     // MARK: - UI Building
+    // MARK: - Updated Property Declarations
+    // Make sure to find these variables at the top of your class and update their types to SKSpriteNode:
+    // private var pauseModal: SKSpriteNode?
+    // private var pauseOverlay: SKNode?
+
     private func buildPauseOverlay() {
         let overlay = SKNode()
         overlay.name = NodeName.pauseOverlay.rawValue
@@ -340,75 +345,79 @@ final class GameLoopScene: SKScene {
         dimmer.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
         overlay.addChild(dimmer)
 
-        let modalSize = CGSize(width: size.width * 0.7, height: size.height * 0.5)
-        let modal = SKShapeNode(rectOf: modalSize, cornerRadius: 24)
+        // 1. Pixel Art Pause Modal
+        let modalTexture = SKTexture(imageNamed: "pause_modal")
+        modalTexture.filteringMode = .nearest
+        let modal = SKSpriteNode(texture: modalTexture)
         modal.name = NodeName.pauseModal.rawValue
-        modal.fillColor = NSColor(white: 0.88, alpha: 1)
-        modal.strokeColor = .clear
         modal.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
         modal.zPosition = 1
+        
+        // Maintain a safe scale relative to the screen size
+        let modalScale = (size.width * 0.75) / modal.size.width
+        modal.setScale(modalScale)
+        
         overlay.addChild(modal)
         pauseModal = modal
 
-        let title = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        title.text = "PAUSE"
-        title.fontSize = 34
-        title.fontColor = .black
-        title.verticalAlignmentMode = .center
-        title.position = CGPoint(x: 0, y: modalSize.height * 0.28)
+        // 2. Pixel Art Title Image
+        let titleTexture = SKTexture(imageNamed: "paused_text")
+        titleTexture.filteringMode = .nearest
+        let title = SKSpriteNode(texture: titleTexture)
+        title.position = CGPoint(x: 0, y: modal.size.height * 0.28 / modal.yScale)
+        title.zPosition = 2
         modal.addChild(title)
 
-        let buttonY = -modalSize.height * 0.05
-        let buttonSpacing = modalSize.width * 0.3
+        // 3. Layout Adjustments for Buttons
+        let buttonY = -modal.size.height * 0.08 / modal.yScale
+        let buttonSpacing = (modal.size.width / modal.xScale) * 0.28
 
-        addPauseButton(name: .pauseQuit,
-                       icon: "X",
-                       title: "Quit",
+        // Left Button: Retry
+        addPauseButton(name: .pauseRetry,
+                       icon: "restart_logo",
+                       title: "",
                        position: CGPoint(x: -buttonSpacing, y: buttonY),
                        in: modal)
 
+        // Center Button: Resume
         addPauseButton(name: .pauseResume,
-                       icon: ">",
-                       title: "Resume",
+                       icon: "play_logo",
+                       title: "",
                        position: CGPoint(x: 0, y: buttonY),
                        in: modal)
 
-        addPauseButton(name: .pauseRetry,
-                       icon: "R",
-                       title: "Retry",
+        // Right Button: Quit
+        addPauseButton(name: .pauseQuit,
+                       icon: "exit_logo",
+                       title: "",
                        position: CGPoint(x: buttonSpacing, y: buttonY),
                        in: modal)
     }
 
-    private func addPauseButton(name: NodeName,
-                                icon: String,
-                                title: String,
-                                position: CGPoint,
-                                in modal: SKNode) {
-        let button = SKShapeNode(rectOf: CGSize(width: 140, height: 120), cornerRadius: 16)
-        button.name = name.rawValue
-        button.fillColor = NSColor(white: 0.95, alpha: 1)
-        button.strokeColor = .clear
-        button.position = position
-        button.zPosition = 2
-        modal.addChild(button)
-
-        let iconLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        iconLabel.text = icon
-        iconLabel.fontSize = 48
-        iconLabel.fontColor = .black
-        iconLabel.verticalAlignmentMode = .center
-        iconLabel.position = CGPoint(x: 0, y: 18)
-        button.addChild(iconLabel)
-
-        let titleLabel = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        titleLabel.text = title
-        titleLabel.fontSize = 20
-        titleLabel.fontColor = .black
-        titleLabel.verticalAlignmentMode = .center
-        titleLabel.position = CGPoint(x: 0, y: -34)
-        button.addChild(titleLabel)
+    private func addPauseButton(name: NodeName, icon: String, title: String, position: CGPoint, in modal: SKNode) {
+        // Button container frame to register input cleanly
+        let buttonBase = SKNode()
+        buttonBase.name = name.rawValue
+        buttonBase.position = position
+        buttonBase.zPosition = 2
+        
+        // 1. Square Background Frame
+        let bgTexture = SKTexture(imageNamed: "square_pause_buttons")
+        bgTexture.filteringMode = .nearest
+        let bgSprite = SKSpriteNode(texture: bgTexture)
+        bgSprite.zPosition = 1
+        buttonBase.addChild(bgSprite)
+        
+        // 2. Center Icon Layer
+        let iconTexture = SKTexture(imageNamed: icon)
+        iconTexture.filteringMode = .nearest
+        let iconSprite = SKSpriteNode(texture: iconTexture)
+        iconSprite.zPosition = 2
+        buttonBase.addChild(iconSprite)
+        
+        modal.addChild(buttonBase)
     }
+
 
     private func showPauseOverlay(showModal: Bool) {
         pauseOverlay?.isHidden = false

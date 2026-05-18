@@ -7,6 +7,9 @@ class SafeZoneSystem: GKComponentSystem<RenderComponent> {
     weak var scene: SKScene?
     var safeZoneX: CGFloat
     
+    // Add a callback closure to notify the scene when the game is over
+    var onSafeZoneBreached: (() -> Void)?
+    
     init(safeZoneX: CGFloat, stateMachine: GKStateMachine?, scene: SKScene?) {
         self.safeZoneX = safeZoneX
         self.stateMachine = stateMachine
@@ -41,8 +44,8 @@ class SafeZoneSystem: GKComponentSystem<RenderComponent> {
     override func update(deltaTime seconds: TimeInterval) {
         super.update(deltaTime: seconds)
         
-        // Stop checking if the game has already ended
-        if stateMachine?.currentState is GameOverState {
+        // Only check for breaches if the game is actively playing
+        guard stateMachine?.currentState is PlayingState else {
             return
         }
         
@@ -52,11 +55,10 @@ class SafeZoneSystem: GKComponentSystem<RenderComponent> {
                 let node = component.node
                 
                 // Trigger condition: Does the Poop's X position cross the Safe Zone X?
-                // Depending on your anchor points, you might want to use: node.frame.minX <= safeZoneX
                 if node.position.x <= safeZoneX {
                     
-                    // The poop breached the safe zone! Trigger Game Over instantly.
-                    stateMachine?.enter(GameOverState.self)
+                    // Trigger Game Over via the callback!
+                    onSafeZoneBreached?()
                     
                     // Optional: remove the enemy or play a splat sound
                     node.removeFromParent()

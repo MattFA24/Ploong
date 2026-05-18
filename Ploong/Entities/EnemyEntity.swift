@@ -12,11 +12,19 @@ final class EnemyEntity: GameEntity {
     init(position: CGPoint, hp: CGFloat) {
             super.init()
             
-            // 1. Render: Brown square
-            let render = RenderComponent(color: .brown, size: CGSize(width: 50, height: 70))
-            render.node.position = position
-            render.node.zPosition = 6
+            let enemyTier = EnemyAnimation.tier(for: hp)
+            let enemySize = enemyTier.size
+
+            let render = RenderComponent(textureName: enemyTier.textureName, size: enemySize, zPosition: 6)
+            let enemyFootOffset = abs(position.y - GameConstants.topLaneY) < abs(position.y - GameConstants.bottomLaneY)
+                ? GameConstants.topEnemyFootOffset
+                : GameConstants.bottomEnemyFootOffset
+            let footBaselineY = position.y - enemyFootOffset
+            render.node.anchorPoint = CGPoint(x: 0.5, y: 0)
+            render.node.position = CGPoint(x: position.x, y: footBaselineY)
             render.node.entity = self
+            render.node.texture?.filteringMode = .nearest
+            render.node.run(EnemyAnimation.idleAction(for: enemyTier), withKey: "enemyIdleAnimation")
             
             // --- NEW FORMATTING LOGIC ---
             let hpText: String
@@ -33,19 +41,19 @@ final class EnemyEntity: GameEntity {
             hpLbl.fontSize = 13
             hpLbl.fontColor = .white
             hpLbl.zPosition = 1
-            hpLbl.position = CGPoint(x: 0, y: 55)
+            hpLbl.position = CGPoint(x: 0, y: enemySize.height + 15)
             render.node.addChild(hpLbl)
             
             // HP Bar
             let barBg = SKSpriteNode(color: .black, size: CGSize(width: 40, height: 6))
-            barBg.position = CGPoint(x: 0, y: 43)
+            barBg.position = CGPoint(x: 0, y: enemySize.height + 5)
             let bar = SKSpriteNode(color: .green, size: CGSize(width: 38, height: 4))
             bar.name = "hpBar"
             barBg.addChild(bar)
             render.node.addChild(barBg)
             
             // 2. Physics
-            let pb = SKPhysicsBody(rectangleOf: render.node.size)
+            let pb = SKPhysicsBody(rectangleOf: enemySize, center: CGPoint(x: 0, y: enemySize.height / 2))
             pb.isDynamic = true
             pb.categoryBitMask = PhysicsCategory.enemy
             pb.contactTestBitMask = PhysicsCategory.player | PhysicsCategory.bullet | PhysicsCategory.base

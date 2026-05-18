@@ -20,63 +20,251 @@ final class GameLoopScene: SKScene {
     }
 
     private lazy var stateMachine = GKStateMachine(states: [
-        PlayingState(scene: self),
-        PausedState(scene: self),
-        CountdownState(scene: self)
-    ])
+            PlayingState(scene: self),
+            PausedState(scene: self),
+            CountdownState(scene: self)
+        ])
 
-    private weak var pauseOverlay: SKNode?
-    private weak var pauseModal: SKShapeNode?
-    private weak var countdownLabel: SKLabelNode?
+        private weak var pauseOverlay: SKNode?
+        private weak var pauseModal: SKShapeNode?
+        private weak var countdownLabel: SKLabelNode?
+        private weak var coinCounterLabel: SKLabelNode?
+        private weak var scoreLabel: SKLabelNode?
+        private var sessionTime: TimeInterval = 0
+        private var currentScore: Int = 0
 
-    private let renderSystem = RenderSystem()
-    private var entities: [GKEntity] = []
+        private let renderSystem = RenderSystem()
+        private var entities: [GKEntity] = []
+        
+        private let movementSystem = MovementSystem()
+        private let shootingSystem = ShootingSystem()
+        private let spawnerSystem = SpawnerSystem()
+        private let collisionManager = CollisionManager()
+        
+        private var player: PlayerEntity!
+        private var lastUpdateTime: TimeInterval = 0
 
-    override func sceneDidLoad() {
-        super.sceneDidLoad()
-        backgroundColor = .white
-        AudioManager.shared.playGameBgm()
-        setupWorld()
-        buildPauseOverlay()
-        stateMachine.enter(PlayingState.self)
+        override func sceneDidLoad() {
+            super.sceneDidLoad()
+            backgroundColor = .white
+            AudioManager.shared.playGameBgm()
+            
+            physicsWorld.gravity = .zero
+            physicsWorld.contactDelegate = collisionManager
+            collisionManager.scene = self
+            
+            collisionManager.onPlayerHitEnemy = { [weak self] in
+                            self?.checkAndSaveHighScore() // Save score before pausing/dying
+                            self?.stateMachine.enter(PausedState.self)
+                        }
+            collisionManager.onCoinsChanged = { [weak self] count in
+                self?.updateCoinCounter(count)
+            }
+            
+            // 1. Tell the systems what to do when they spawn an entity!
+            let spawnHandler: (GKEntity) -> Void = { [weak self] entity in
+                guard let self = self else { return }
+                self.entities.append(entity) // Retain entity in memory
+                self.renderSystem.addEntity(entity)
+                if let render = entity.component(ofType: RenderComponent.self) {
+                    render.addToScene(self) // Add explicitly to Scene
+                }
+            }
+            
+            shootingSystem.onEntitySpawned = spawnHandler
+            spawnerSystem.onEntitySpawned = spawnHandler
+            
+            setupWorld()
+            buildCoinCounterLabel()
+            buildScoreLabel()
+            buildPauseOverlay()
+            stateMachine.enter(PlayingState.self)
+        }
+
+        override func didMove(to view: SKView) {
+            super.didMove(to: view)
+            setupGestureControl()
+        }
+
+    override func update(_ currentTime: TimeInterval) {
+            if lastUpdateTime == 0 { lastUpdateTime = currentTime }
+            let deltaTime = currentTime - lastUpdateTime
+            lastUpdateTime = currentTime
+            
+            if stateMachine.currentState is PlayingState {
+                
+              
+                sessionTime += deltaTime
+                let newScore = Int(sessionTime * 10)
+                if newScore != currentScore {
+                    currentScore = newScore
+                    updateScoreDisplay(currentScore)
+                }
+                
+                
+                movementSystem.update(deltaTime: deltaTime)
+                shootingSystem.update(deltaTime: deltaTime)
+                
+                // Keep the spawner aware of current player power so it scales enemies correctly!
+                if let stats = player.component(ofType: StatsComponent.self) {
+                    spawnerSystem.currentPlayerPower = stats.power
+                }
+                spawnerSystem.update(deltaTime: deltaTime, sceneSize: size)
+                
+                // 2. Clean up destroyed entities to prevent memory leaks!
+                entities.removeAll { entity in
+                    if let render = entity.component(ofType: RenderComponent.self) {
+                        return render.node.parent == nil // Removes if node was destroyed
+                    }
+                    return false
+                }
+            }
+        }
+
+    private func buildScoreLabel() {
+            let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            label.name = "scoreLabel"
+            label.fontSize = 24 // Matched the font size with the coin label
+            label.fontColor = .black
+            label.horizontalAlignmentMode = .left // Align to the left
+            label.verticalAlignmentMode = .center
+            
+            // Placed in the top left corner
+            label.position = CGPoint(x: 24, y: size.height - 28)
+            label.zPosition = 90
+            addChild(label)
+            scoreLabel = label
+            
+            updateScoreDisplay(0)
+        }
+
+        private func updateScoreDisplay(_ score: Int) {
+            scoreLabel?.text = "Score: \(score)"
+        }
+
+        private func buildCoinCounterLabel() {
+            let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            label.name = "coinCounterLabel"
+            label.fontSize = 24
+            label.fontColor = .black
+            label.horizontalAlignmentMode = .left 
+            label.verticalAlignmentMode = .center
+            
+            // Placed exactly 30 pixels below the Score label
+            label.position = CGPoint(x: 24, y: size.height - 58)
+            label.zPosition = 90
+            addChild(label)
+            coinCounterLabel = label
+            
+            updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+        }
+    
+    private func checkAndSaveHighScore() {
+            let currentHighScore = UserDefaults.standard.integer(forKey: "HighScore")
+            if currentScore > currentHighScore {
+                UserDefaults.standard.set(currentScore, forKey: "HighScore")
+            }
+        }
+
+    
+    private func updateCoinCounter(_ count: Int) {
+        coinCounterLabel?.text = "Coin: \(count)"
+    }
+    
+    private func setupWorld() {
+            let background = SpriteEntity(textureName: "game_bg", size: size, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: -10)
+            let platformSize = scaledSize(for: "mid_platform", width: size.width)
+            let platform = SpriteEntity(textureName: "mid_platform", size: platformSize, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: 5)
+            
+            let roofSize = scaledSize(for: "tiles_roof", width: size.width)
+            let topRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5), zPosition: 6)
+            let bottomRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
+
+            // --- PIXEL PERFECT MATH CALCULATIONS ---
+            let characterHalfHeight: CGFloat = 35
+            
+            // Fix: Explicitly define the visible height of the bottom tiles (approx 115px)
+            // If the character is still slightly floating or sinking, just tweak this number!
+            let visibleFloorHeight: CGFloat = 115
+
+            // Bottom Lane Y
+            GameConstants.bottomLaneY = visibleFloorHeight + characterHalfHeight
+            
+            // Top Lane Y
+            GameConstants.topLaneY = (size.height / 2) + (platformSize.height / 2) + characterHalfHeight
+
+            // Gate sizing
+            let gapHeight = ((size.height / 2) - (platformSize.height / 2)) - visibleFloorHeight
+            GameConstants.gateHeight = gapHeight
+            GameConstants.gateBottomY = visibleFloorHeight + (gapHeight / 2)
+            GameConstants.gateTopY = (size.height / 2) + (platformSize.height / 2) + (gapHeight / 2)
+            // ---------------------------------------
+
+            addBaseSensor()
+
+            player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: GameConstants.bottomLaneY))
+            
+            if let stats = player.component(ofType: StatsComponent.self) {
+                shootingSystem.addComponent(stats)
+            }
+
+            entities = [background, platform, topRoof, bottomRoof, player]
+            for entity in entities {
+                renderSystem.addEntity(entity)
+            }
+            renderSystem.addToScene(self)
+        }
+    
+    private func addBaseSensor() {
+        let enemyHeight: CGFloat = 70
+        let laneSpan = abs(GameConstants.topLaneY - GameConstants.bottomLaneY) + enemyHeight
+        let baseNode = SKNode()
+        baseNode.name = "base"
+        baseNode.position = CGPoint(
+            x: GameConstants.playerX,
+            y: (GameConstants.topLaneY + GameConstants.bottomLaneY) * 0.5
+        )
+
+        let body = SKPhysicsBody(rectangleOf: CGSize(width: 24, height: laneSpan))
+        body.isDynamic = false
+        body.categoryBitMask = PhysicsCategory.base
+        body.contactTestBitMask = PhysicsCategory.enemy
+        body.collisionBitMask = 0
+        baseNode.physicsBody = body
+        addChild(baseNode)
+    }
+    
+    private func setupGestureControl() {
+        #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+        HandGestureManager.shared.startDetection()
+        HandGestureManager.shared.resetGestureChangeTracking()
+        let applyGesture: (HandGesture) -> Void = { [weak self] gesture in
+            guard let self, self.stateMachine.currentState is PlayingState else {
+                return
+            }
+
+            switch gesture {
+            case .fist:
+                self.movePlayerToLane(y: GameConstants.bottomLaneY)
+            case .point:
+                self.movePlayerToLane(y: GameConstants.topLaneY)
+            case .unrecognized, .unknown:
+                break
+            }
+        }
+
+        HandGestureManager.shared.onGestureChanged = applyGesture
+        applyGesture(HandGestureManager.shared.currentGesture)
+        #endif
     }
 
-    private func setupWorld() {
-        let background = SpriteEntity(
-            textureName: "game_bg",
-            size: size,
-            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
-            zPosition: -10
-        )
-
-        let platformSize = scaledSize(for: "mid_platform", width: size.width)
-        let platform = SpriteEntity(
-            textureName: "mid_platform",
-            size: platformSize,
-            position: CGPoint(x: size.width * 0.5, y: size.height * 0.5),
-            zPosition: 5
-        )
-
-        let roofSize = scaledSize(for: "tiles_roof", width: size.width)
-        let topRoof = SpriteEntity(
-            textureName: "tiles_roof",
-            size: roofSize,
-            position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5),
-            zPosition: 6
-        )
-
-        let bottomRoof = SpriteEntity(
-            textureName: "tiles_roof",
-            size: roofSize,
-            position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5),
-            zPosition: 6
-        )
-
-        entities = [background, platform, topRoof, bottomRoof]
-        for entity in entities {
-            renderSystem.addEntity(entity)
+    private func movePlayerToLane(y laneY: CGFloat) {
+        guard let renderNode = player.component(ofType: RenderComponent.self)?.node else {
+            return
         }
-        renderSystem.addToScene(self)
+
+        renderNode.removeAction(forKey: "laneSwitch")
+        renderNode.run(.moveTo(y: laneY, duration: 0.15), withKey: "laneSwitch")
     }
 
     private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {
@@ -90,11 +278,22 @@ final class GameLoopScene: SKScene {
         return CGSize(width: width, height: textureSize.height * scale)
     }
 
+    // MARK: - Input Handling
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 49 {
-            handleSpacebar()
-        }
-    }
+                if event.keyCode == 49 { // Spacebar
+                    handleSpacebar()
+                }
+                
+                // Lane switching logic for Up/Down arrows
+                if stateMachine.currentState is PlayingState {
+                    if event.keyCode == 126 { // Up Arrow
+                        movePlayerToLane(y: GameConstants.topLaneY)
+                    }
+                    if event.keyCode == 125 { // Down Arrow
+                        movePlayerToLane(y: GameConstants.bottomLaneY)
+                    }
+                }
+            }
 
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
@@ -109,6 +308,7 @@ final class GameLoopScene: SKScene {
         }
     }
 
+    // MARK: - State Methods
     func enterPlaying() {
         physicsWorld.speed = 1
         hidePauseOverlay()
@@ -124,6 +324,7 @@ final class GameLoopScene: SKScene {
         startCountdown()
     }
 
+    // MARK: - UI Building
     private func buildPauseOverlay() {
         let overlay = SKNode()
         overlay.name = NodeName.pauseOverlay.rawValue
@@ -258,6 +459,7 @@ final class GameLoopScene: SKScene {
         label.run(sequence)
     }
 
+    // MARK: - UI Event Handling
     private func handlePauseOverlaySelection(at location: CGPoint) {
         guard pauseOverlay?.isHidden == false else {
             return
@@ -286,9 +488,14 @@ final class GameLoopScene: SKScene {
     }
 
     private func retryGame() {
+        checkAndSaveHighScore()
         guard let view = view else {
             return
         }
+
+        #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+        HandGestureManager.shared.resetGestureChangeTracking()
+        #endif
 
         let scene = GameLoopScene(size: size)
         scene.scaleMode = scaleMode
@@ -296,6 +503,8 @@ final class GameLoopScene: SKScene {
     }
 
     private func quitToMenu() {
+        checkAndSaveHighScore()
+        
         guard let view = view else {
             return
         }
@@ -306,4 +515,6 @@ final class GameLoopScene: SKScene {
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
+
 }
+

@@ -48,10 +48,10 @@ final class MenuScene: SKScene {
         scaleSprite(title, maxWidth: size.width * 0.75, maxHeight: size.height * 0.28)
         addChild(title)
 
-        // 2. Highscore Label
-        let highscore = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        highscore.text = "High score : 100.000"
-        highscore.fontSize = 24 // Slightly increased font size
+        let highscore = SKLabelNode(fontNamed: "AvenirNext-Medium")
+        let savedHighScore = UserDefaults.standard.integer(forKey: "HighScore")
+        highscore.text = "HIGHSCORE: \(savedHighScore)"
+        highscore.fontSize = 26
         highscore.fontColor = .black
         highscore.verticalAlignmentMode = .center
         highscore.position = CGPoint(x: size.width * 0.5, y: size.height * 0.62)

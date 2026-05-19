@@ -103,10 +103,25 @@ final class CharactersScene: SKScene {
         coinBg.addChild(coinLabel)
 
         // Setup Characters
+        let characterAssetNames = [
+            "joy_char",
+            "unknown_tiu",
+            "unknown_jevon",
+            "unknown_vey",
+            "unknown_farrell"
+        ]
+        
+        let labelAssetNames = [
+            "joy_text",
+            "unknown_text",
+            "unknown_text",
+            "unknown_text",
+            "unknown_text"
+        ]
+        
         let startX = -CGFloat(charCount - 1) * charSpacing * 0.5
         for i in 0..<charCount {
-            let isJoy = (i == 0)
-            let tex = SKTexture(imageNamed: isJoy ? "joy_char" : "unknown_char")
+            let tex = SKTexture(imageNamed: characterAssetNames[i])
             tex.filteringMode = .nearest
             
             let char = SKSpriteNode(texture: tex)
@@ -121,7 +136,7 @@ final class CharactersScene: SKScene {
             modal.addChild(char)
             characterNodes.append(char)
             
-            let lTex = SKTexture(imageNamed: isJoy ? "joy_text" : "unknown_text")
+            let lTex = SKTexture(imageNamed: labelAssetNames[i])
             lTex.filteringMode = .nearest
             let labelSprite = SKSpriteNode(texture: lTex)
             labelSprite.anchorPoint = CGPoint(x: 0.5, y: 1.0)

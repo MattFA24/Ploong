@@ -23,7 +23,7 @@ struct CharacterAnimation {
             textures.append(SKTexture(imageNamed: textureName))
         }
         
-        // This replaces JoyAnimation.idleAction()
+     
         return SKAction.repeatForever(SKAction.animate(with: textures, timePerFrame: 0.15))
     }
 }

@@ -14,6 +14,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
+        CharacterManager.shared.resetProgress(startingCoins: 100)
     }
     
     func applicationWillTerminate(_ aNotification: Notification) {

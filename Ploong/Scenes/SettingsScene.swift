@@ -31,17 +31,15 @@ final class SettingsScene: SKScene {
     }
 
     private func buildLayout() {
-            // --- LAYOUT TWEAKABLES: Change these values to move elements ---
-            let previewY: CGFloat = 170.0          // Moves rectangle up/down
-            let previewScale: CGFloat = 0.40       // Size of rectangle (0.45 = 45% of modal)
+            let previewY: CGFloat = 170.0
+            let previewScale: CGFloat = 0.40
             
-            let textColumnX: CGFloat = -400.0      // Move ALL text left (-) or right (+)
-            let sliderColumnX: CGFloat = 200.0     // Move ALL sliders left (-) or right (+)
-            let slidersWidth: CGFloat = 700.0      // How long the sliders are
+            let textColumnX: CGFloat = -400.0
+        let sliderColumnX: CGFloat = 200.0
+            let slidersWidth: CGFloat = 700.0
             
-            let startY: CGFloat = -80.0            // Vertical position of the first row
-            let rowSpacing: CGFloat = -100.0        // Distance between rows
-            // ---------------------------------------------------------------
+            let startY: CGFloat = -80.0
+        let rowSpacing: CGFloat = -100.0
 
             let dimmer = SKShapeNode(rectOf: size)
             dimmer.fillColor = NSColor(white: 0, alpha: 0.35)
@@ -80,11 +78,10 @@ final class SettingsScene: SKScene {
             preview.zPosition = 2
             modal.addChild(preview)
 
-            // 2. Row Setup
             let configs: [(String, CGFloat, (CGFloat) -> Void)] = [
                 ("bgbrightness_text", BackgroundManager.shared.loadBrightness(), { val in BackgroundManager.shared.saveBrightness(val) }),
-                ("music_text", 0.65, { _ in }),
-                ("sfx_text", 0.6, { _ in })
+                ("music_text", CGFloat(AudioManager.shared.musicVolume), { val in AudioManager.shared.musicVolume = Float(val) }),
+                ("sfx_text", CGFloat(AudioManager.shared.sfxVolume), { val in AudioManager.shared.sfxVolume = Float(val) })
             ]
 
             for (index, config) in configs.enumerated() {
@@ -150,7 +147,6 @@ final class SettingsScene: SKScene {
 }
 
 // MARK: - Helper Slider Node
-// This class must be inside this file for the 'private' references to work correctly.
 class SliderNode: SKNode {
     private let track: SKShapeNode
     private let fill: SKShapeNode

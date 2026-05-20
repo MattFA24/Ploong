@@ -12,6 +12,7 @@ final class MenuScene: SKScene {
         case play
         case character
         case settings
+        case info
     }
 
     private var didSetupLayout = false
@@ -119,6 +120,8 @@ final class MenuScene: SKScene {
             route(.character)
         } else if nodesAtPoint.contains(where: { $0.name == "settings_button" }) {
             route(.settings)
+        } else if nodesAtPoint.contains(where: { $0.name == "info_button" }) {
+            route(.info)
         }
     }
 
@@ -132,6 +135,7 @@ final class MenuScene: SKScene {
             case .play: self.presentCalibration()
             case .character: self.presentCharacters()
             case .settings: self.presentSettings()
+            case .info: self.presentInfo()
             }
         }
         self.run(SKAction.sequence([wait, transition]))
@@ -155,6 +159,13 @@ final class MenuScene: SKScene {
     private func presentSettings() {
         guard let view = view else { return }
         let scene = SettingsScene(size: size)
+        scene.scaleMode = scaleMode
+        view.presentScene(scene)
+    }
+    
+    private func presentInfo() {
+        guard let view = view else { return }
+        let scene = InfoScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }

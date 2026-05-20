@@ -225,10 +225,6 @@ final class GameOverScene: SKScene {
 
     private func retryGame() {
         guard let view = view else { return }
-        
-        AudioManager.shared.stopGameBgm()
-        AudioManager.shared.stopSFX(named: "sfx_poop_splat")
-        
         let scene = GameLoopScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene, transition: SKTransition.crossFade(withDuration: 0.2))
@@ -236,11 +232,6 @@ final class GameOverScene: SKScene {
 
     private func quitToMenu() {
         guard let view = view else { return }
-        
-        AudioManager.shared.stopGameBgm()
-        AudioManager.shared.playMenuBgm()
-        AudioManager.shared.stopSFX(named: "sfx_poop_splat")
-        
         AudioManager.shared.stopGameBgm()
         let scene = MenuScene(size: size)
         scene.scaleMode = scaleMode

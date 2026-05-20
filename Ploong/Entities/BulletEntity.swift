@@ -13,7 +13,7 @@ final class BulletEntity: GameEntity {
         super.init()
         
         // 1. Render (Fixed: using color and size)
-        let render = RenderComponent(color: .init(red: 0.6, green: 0.3, blue: 0.0, alpha: 1), size: CGSize(width: 14, height: 14))
+        let render = RenderComponent(textureName: "bullet", size: CGSize(width: 13, height: 13))
         render.node.position = position
         render.node.zPosition = 8
         render.node.entity = self // CRUCIAL: Links the node to this ECS Entity

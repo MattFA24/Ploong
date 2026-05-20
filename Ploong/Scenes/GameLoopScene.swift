@@ -280,7 +280,10 @@ final class GameLoopScene: SKScene {
 
         addBaseSensor()
 
-        player = PlayerEntity(position: CGPoint(x: GameConstants.playerX, y: GameConstants.bottomLaneY))
+        player = PlayerEntity(position: CGPoint(
+            x: GameConstants.playerX,
+            y: GameConstants.bottomLaneY + GameConstants.bottomPlayerFootOffset
+        ))
         
         if let stats = player.component(ofType: StatsComponent.self) {
             shootingSystem.addComponent(stats)
@@ -341,8 +344,18 @@ final class GameLoopScene: SKScene {
             return
         }
 
+        let footOffset: CGFloat
+        if laneY == GameConstants.topLaneY {
+            footOffset = GameConstants.topPlayerFootOffset
+        } else {
+            footOffset = GameConstants.bottomPlayerFootOffset
+        }
+        
+        
+        let targetY = laneY + footOffset
+
         renderNode.removeAction(forKey: "laneSwitch")
-        renderNode.run(.moveTo(y: laneY, duration: 0.15), withKey: "laneSwitch")
+        renderNode.run(.moveTo(y: targetY, duration: 0.15), withKey: "laneSwitch")
     }
 
     private func scaledSize(for textureName: String, width: CGFloat) -> CGSize {

@@ -1,8 +1,8 @@
 //
-//  GameLoopScene.swift
-//  Ploong
+//   GameLoopScene.swift
+//   Ploong
 //
-//  Created by Matthew Fernando Anggrian on 11/05/26.
+//   Created by Matthew Fernando Anggrian on 11/05/26.
 //
 
 import SpriteKit
@@ -29,8 +29,10 @@ final class GameLoopScene: SKScene {
     private weak var pauseModal: SKSpriteNode?
     private weak var countdownLabel: SKLabelNode?
     
-    private weak var coinCounterLabel: SKLabelNode?
-    private weak var scoreLabel: SKLabelNode?
+    // Pixel-perfect vertical alignment properties
+    private weak var scoreValueLabel: SKLabelNode?
+    private weak var coinValueLabel: SKLabelNode?
+    
     private var sessionTime: TimeInterval = 0
     private var currentScore: Int = 0
 
@@ -41,7 +43,7 @@ final class GameLoopScene: SKScene {
     private let shootingSystem = ShootingSystem()
     private let spawnerSystem = SpawnerSystem()
     private let collisionManager = CollisionManager()
-    private var safeZoneSystem: SafeZoneSystem! // ADDED
+    private var safeZoneSystem: SafeZoneSystem!
     
     private var player: PlayerEntity!
     private var lastUpdateTime: TimeInterval = 0
@@ -87,9 +89,7 @@ final class GameLoopScene: SKScene {
         spawnerSystem.onEntitySpawned = spawnHandler
         
         setupWorld()
-        buildCoinCounterLabel()
-        buildScoreLabel()
-        buildPauseOverlay()
+        buildGameHUD()
         stateMachine.enter(PlayingState.self)
     }
 
@@ -104,7 +104,6 @@ final class GameLoopScene: SKScene {
         lastUpdateTime = currentTime
         
         if stateMachine.currentState is PlayingState {
-            
             sessionTime += deltaTime
             let newScore = Int(sessionTime * 10)
             if newScore != currentScore {
@@ -114,7 +113,7 @@ final class GameLoopScene: SKScene {
             
             movementSystem.update(deltaTime: deltaTime)
             shootingSystem.update(deltaTime: deltaTime)
-            safeZoneSystem.update(deltaTime: deltaTime) // ADDED
+            safeZoneSystem.update(deltaTime: deltaTime)
             
             if let stats = player.component(ofType: StatsComponent.self) {
                 spawnerSystem.currentPlayerPower = stats.power
@@ -134,10 +133,102 @@ final class GameLoopScene: SKScene {
         }
     }
 
+    // MARK: - Pixel Art HUD Builder
+    private func buildGameHUD() {
+        // --- HUD LAYOUT TWEAKABLES ---
+        let scoreBoxScale: CGFloat = 0.70
+        let scoreBoxPosition = CGPoint(x: 150, y: size.height - 70)
+        
+        let hudFontSize: CGFloat = 16.0
+        let titleColumnX: CGFloat = scoreBoxPosition.x - 75
+        let valueColumnX: CGFloat = scoreBoxPosition.x + 75
+        
+        let rowScoreY: CGFloat = scoreBoxPosition.y + 10
+        let rowCoinY: CGFloat = scoreBoxPosition.y - 12
+        
+        let pauseHintScale: CGFloat = 0.85
+        let pauseHintPosition = CGPoint(x: size.width - 170, y: size.height - 60)
+        // -------------------------------------------------------------
+        
+        // 1. Top Left Highscore Frame
+        let scoreBgTex = SKTexture(imageNamed: "main_score_bg")
+        scoreBgTex.filteringMode = .nearest
+        let scoreBg = SKSpriteNode(texture: scoreBgTex)
+        scoreBg.position = scoreBoxPosition
+        scoreBg.setScale(scoreBoxScale)
+        scoreBg.zPosition = 85
+        addChild(scoreBg)
+        
+        // --- ROW 1: SCORE ---
+        let scoreTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        scoreTitle.text = "score"
+        scoreTitle.fontSize = hudFontSize
+        scoreTitle.fontColor = .black
+        scoreTitle.horizontalAlignmentMode = .left
+        scoreTitle.verticalAlignmentMode = .center
+        scoreTitle.position = CGPoint(x: titleColumnX, y: rowScoreY)
+        scoreTitle.zPosition = 90
+        addChild(scoreTitle)
+        
+        let scoreVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        scoreVal.fontSize = hudFontSize
+        scoreVal.fontColor = .black
+        scoreVal.horizontalAlignmentMode = .right
+        scoreVal.verticalAlignmentMode = .center
+        scoreVal.position = CGPoint(x: valueColumnX, y: rowScoreY)
+        scoreVal.zPosition = 90
+        addChild(scoreVal)
+        self.scoreValueLabel = scoreVal
+        
+        // --- ROW 2: COIN ---
+        let coinTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        coinTitle.text = "coin"
+        coinTitle.fontSize = hudFontSize
+        coinTitle.fontColor = .black
+        coinTitle.horizontalAlignmentMode = .left
+        coinTitle.verticalAlignmentMode = .center
+        coinTitle.position = CGPoint(x: titleColumnX, y: rowCoinY)
+        coinTitle.zPosition = 90
+        addChild(coinTitle)
+        
+        let coinVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        coinVal.fontSize = hudFontSize
+        coinVal.fontColor = .black
+        coinVal.horizontalAlignmentMode = .right
+        coinVal.verticalAlignmentMode = .center
+        coinVal.position = CGPoint(x: valueColumnX, y: rowCoinY)
+        coinVal.zPosition = 90
+        addChild(coinVal)
+        self.coinValueLabel = coinVal
+        
+        // Update values explicitly
+        updateScoreDisplay(0)
+        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+
+        // 2. Top Right Pause Hint Frame Layout
+        let hintBgTex = SKTexture(imageNamed: "pause_hint_bg")
+        hintBgTex.filteringMode = .nearest
+        let hintBg = SKSpriteNode(texture: hintBgTex)
+        hintBg.position = pauseHintPosition
+        hintBg.setScale(pauseHintScale)
+        hintBg.zPosition = 85
+        addChild(hintBg)
+        
+        let hintTextTex = SKTexture(imageNamed: "pause_hint_text")
+        hintTextTex.filteringMode = .nearest
+        let hintTextSprite = SKSpriteNode(texture: hintTextTex)
+        hintTextSprite.position = pauseHintPosition
+        hintTextSprite.setScale(pauseHintScale)
+        hintTextSprite.zPosition = 90
+        addChild(hintTextSprite)
+        
+        buildPauseOverlay()
+    }
+
     // MARK: - Game Over Transition
     private func transitionToGameOver() {
         physicsWorld.speed = 0 // Freeze the game world
-        checkAndSaveHighScore() // Save score before transitioning
+        checkAndSaveHighScore()
         
         guard let view = self.view else { return }
         
@@ -145,45 +236,18 @@ final class GameLoopScene: SKScene {
         HandGestureManager.shared.resetGestureChangeTracking()
         #endif
         
-        // Present the new GameOverScene
         let gameOverScene = GameOverScene(size: self.size, score: self.currentScore)
         gameOverScene.scaleMode = self.scaleMode
         view.presentScene(gameOverScene, transition: SKTransition.crossFade(withDuration: 0.5))
     }
 
-    // MARK: - Labels & Saving
-    private func buildScoreLabel() {
-        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.name = "scoreLabel"
-        label.fontSize = 24
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 24, y: size.height - 28)
-        label.zPosition = 90
-        addChild(label)
-        scoreLabel = label
-        
-        updateScoreDisplay(0)
-    }
-
+    // MARK: - UI Mutators & Saving
     private func updateScoreDisplay(_ score: Int) {
-        scoreLabel?.text = "Score: \(score)"
+        scoreValueLabel?.text = "\(score)"
     }
 
-    private func buildCoinCounterLabel() {
-        let label = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        label.name = "coinCounterLabel"
-        label.fontSize = 24
-        label.fontColor = .black
-        label.horizontalAlignmentMode = .left
-        label.verticalAlignmentMode = .center
-        label.position = CGPoint(x: 24, y: size.height - 58)
-        label.zPosition = 90
-        addChild(label)
-        coinCounterLabel = label
-        
-        updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
+    private func updateCoinCounter(_ count: Int) {
+        coinValueLabel?.text = "\(count)"
     }
     
     private func checkAndSaveHighScore() {
@@ -192,10 +256,6 @@ final class GameLoopScene: SKScene {
             UserDefaults.standard.set(currentScore, forKey: "HighScore")
         }
     }
-
-    private func updateCoinCounter(_ count: Int) {
-        coinCounterLabel?.text = "Coin: \(count)"
-    }
     
     // MARK: - World Setup
     private func setupWorld() {
@@ -203,9 +263,9 @@ final class GameLoopScene: SKScene {
         let platformSize = scaledSize(for: "mid_platform", width: size.width)
         let platform = SpriteEntity(textureName: "mid_platform", size: platformSize, position: CGPoint(x: size.width * 0.5, y: size.height * 0.5), zPosition: 5)
         
-        let roofSize = scaledSize(for: "tiles_roof", width: size.width)
-        let topRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5), zPosition: 6)
-        let bottomRoof = SpriteEntity(textureName: "tiles_roof", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
+        let roofSize = scaledSize(for: "tiles_main", width: size.width)
+        let topRoof = SpriteEntity(textureName: "tiles_main", size: roofSize, position: CGPoint(x: size.width * 0.5, y: size.height - roofSize.height * 0.5), zPosition: 6)
+        let bottomRoof = SpriteEntity(textureName: "tiles_main", size: roofSize, position: CGPoint(x: size.width * 0.5, y: roofSize.height * 0.5), zPosition: 6)
 
         let characterHalfHeight = PlayerEntity.Layout.visualHalfHeight
         let visibleFloorHeight: CGFloat = 115
@@ -226,7 +286,7 @@ final class GameLoopScene: SKScene {
             shootingSystem.addComponent(stats)
         }
 
-        entities = [background, platform, topRoof, bottomRoof, player]
+        entities = [background, platform, bottomRoof, player]
         for entity in entities {
             renderSystem.addEntity(entity)
         }
@@ -296,17 +356,19 @@ final class GameLoopScene: SKScene {
         return CGSize(width: width, height: textureSize.height * scale)
     }
 
-    // MARK: - Input Handling
+    // MARK: - Input Controls
+    override func keyUp(with event: NSEvent) {}
+
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 49 { // Spacebar
+        if event.keyCode == 49 {
             handleSpacebar()
         }
         
         if stateMachine.currentState is PlayingState {
-            if event.keyCode == 126 { // Up Arrow
+            if event.keyCode == 126 {
                 movePlayerToLane(y: GameConstants.topLaneY)
             }
-            if event.keyCode == 125 { // Down Arrow
+            if event.keyCode == 125 {
                 movePlayerToLane(y: GameConstants.bottomLaneY)
             }
         }
@@ -325,7 +387,6 @@ final class GameLoopScene: SKScene {
         }
     }
 
-    // MARK: - State Methods
     func enterPlaying() {
         physicsWorld.speed = 1
         hidePauseOverlay()
@@ -380,12 +441,26 @@ final class GameLoopScene: SKScene {
         let buttonY = -modal.size.height * 0.08 / modal.yScale
         let buttonSpacing = (modal.size.width / modal.xScale) * 0.28
 
-        addPauseButton(name: .pauseRetry, icon: "restart_logo", position: CGPoint(x: -buttonSpacing, y: buttonY), in: modal)
-        addPauseButton(name: .pauseResume, icon: "play_logo", position: CGPoint(x: 0, y: buttonY), in: modal)
-        addPauseButton(name: .pauseQuit, icon: "exit_logo", position: CGPoint(x: buttonSpacing, y: buttonY), in: modal)
+        addPauseButton(name: .pauseRetry,
+                       icon: "restart_logo",
+                       title: "",
+                       position: CGPoint(x: -buttonSpacing, y: buttonY),
+                       in: modal)
+
+        addPauseButton(name: .pauseResume,
+                       icon: "play_logo",
+                       title: "",
+                       position: CGPoint(x: 0, y: buttonY),
+                       in: modal)
+
+        addPauseButton(name: .pauseQuit,
+                       icon: "exit_logo",
+                       title: "",
+                       position: CGPoint(x: buttonSpacing, y: buttonY),
+                       in: modal)
     }
 
-    private func addPauseButton(name: NodeName, icon: String, position: CGPoint, in modal: SKNode) {
+    private func addPauseButton(name: NodeName, icon: String, title: String, position: CGPoint, in modal: SKNode) {
         let buttonBase = SKNode()
         buttonBase.name = name.rawValue
         buttonBase.position = position
@@ -455,7 +530,6 @@ final class GameLoopScene: SKScene {
         label.run(sequence)
     }
 
-    // MARK: - UI Event Handling
     private func handlePauseOverlaySelection(at location: CGPoint) {
         guard pauseOverlay?.isHidden == false else { return }
 

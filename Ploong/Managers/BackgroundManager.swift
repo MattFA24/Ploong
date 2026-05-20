@@ -1,3 +1,10 @@
+//
+//  BackgroundManager.swift
+//  Ploong
+//
+//  Created by Matthew Fernando Anggrian on 11/05/26.
+//
+
 import SpriteKit
 
 // MARK: - ECS Components
@@ -15,7 +22,7 @@ final class BackgroundManager {
     private var backgroundNodes: [SKSpriteNode] = []
     private var ornamentContainer: SKNode?
     
-    // MARK: - Tweakable Foam Settings (Ornament 1)
+    // MARK: - Tweakable Menu Foam Settings (Ornament 1)
     private let foamHeightMultiplier: CGFloat = 0.3
     private let foamYOffset: CGFloat = 0.0
     private let foamOverlap: CGFloat = 10.0
@@ -32,16 +39,17 @@ final class BackgroundManager {
 
     /// Sets up the entire visual stack: Tiled Background -> Foam Parallax -> Static Art
     func setupBackground(in scene: SKScene) {
-        // Clear previous state to prevent node stacking and memory leaks
         backgroundNodes.forEach { $0.removeAllActions(); $0.removeFromParent() }
         backgroundNodes.removeAll()
         ornamentContainer?.removeAllActions()
         ornamentContainer?.removeFromParent()
         
-        // 1. Primary Tiled Background (Affected by brightness)
+        let isGameplay = scene is GameLoopScene
+        
+        // 1. Primary Tiled Background
         let tileComp = BackgroundComponent(
-            textureName: "main_menu_bg",
-            scrollSpeed: 18.0,
+            textureName: isGameplay ? "game_bg" : "main_menu_bg",
+            scrollSpeed: isGameplay ? 0.0 : 18.0,
             zPosition: -10
         )
         createScrollingLayer(in: scene, with: tileComp, addToContainer: false, overlapOverride: backgroundOverlap)
@@ -49,79 +57,104 @@ final class BackgroundManager {
         // 2. Create the Ornament Container for "Pop" animations
         let container = SKNode()
         container.name = "ornamentContainer"
-        container.zPosition = -5
+        container.zPosition = isGameplay ? 15 : -5
         scene.addChild(container)
         self.ornamentContainer = container
         
-        // 3. Ornament 2: Characters/Hose (Behind foam, Nearest Neighbor filtering)
-        let staticTexture = SKTexture(imageNamed: "menu_ornament_2")
-        staticTexture.filteringMode = .nearest
+        // 3. Ornament 2: Characters/Hose (Only built on the Main Menu scene)
+        if !isGameplay {
+            let staticTexture = SKTexture(imageNamed: "menu_ornament_2")
+            staticTexture.filteringMode = .nearest
+            
+            let staticArt = SKSpriteNode(texture: staticTexture)
+            let baseScale = scene.size.width / staticArt.size.width
+            staticArt.setScale(baseScale * ornament2ScaleOverride)
+            staticArt.anchorPoint = CGPoint(x: 0.5, y: 0)
+            staticArt.position = CGPoint(x: (scene.size.width * 0.5) + ornament2XOffset, y: ornament2YOffset)
+            staticArt.zPosition = 1
+            container.addChild(staticArt)
+        }
         
-        let staticArt = SKSpriteNode(texture: staticTexture)
-        let baseScale = scene.size.width / staticArt.size.width
-        staticArt.setScale(baseScale * ornament2ScaleOverride)
-        staticArt.anchorPoint = CGPoint(x: 0.5, y: 0)
-        staticArt.position = CGPoint(x: (scene.size.width * 0.5) + ornament2XOffset, y: ornament2YOffset)
-        staticArt.zPosition = 1
-        container.addChild(staticArt)
+        // 4. Ornament 1: Foam Parallax Layer
+        let activeScrollSpeed: CGFloat = isGameplay ? 45.0 : 8.0
+        let activeFoamAsset = isGameplay ? "foam_ornament" : "menu_ornament_1"
         
-        // 4. Ornament 1: Foam (In front of characters, Nearest Neighbor filtering)
         let foamComp = BackgroundComponent(
-            textureName: "menu_ornament_1",
-            scrollSpeed: 8.0,
+            textureName: activeFoamAsset,
+            scrollSpeed: activeScrollSpeed,
             zPosition: 5
         )
-        createScrollingLayer(in: scene, with: foamComp, addToContainer: true, overlapOverride: foamOverlap)
         
-        // Restore current brightness setting
+        createScrollingLayer(
+            in: scene,
+            with: foamComp,
+            addToContainer: true,
+            overlapOverride: foamOverlap
+        )
+        
         applyBrightness(loadBrightness())
     }
     
     private func createScrollingLayer(in scene: SKScene, with component: BackgroundComponent, addToContainer: Bool, overlapOverride: CGFloat) {
+        // --- GAMEPLAY FOAM TWEAKABLES ---
+        let gameFoamHeightMultiplier: CGFloat = 0.20 // Lowering this (e.g., 0.3 to 0.20) makes it smaller
+        let gameFoamYOffset: CGFloat = 0.0         // Shifting this more negative pushes it lower down the screen
+        // --------------------------------
+        
         let texture = SKTexture(imageNamed: component.textureName)
-        // CRITICAL: Nearest Neighbor prevents pixel art blurriness
         texture.filteringMode = .nearest
         
         let textureSize = texture.size()
         guard textureSize.width > 0 else { return }
 
         var finalSize: CGSize
-        if component.textureName == "menu_ornament_1" {
-            // Scale based on height while preserving Aspect Ratio
+        var finalYOffset: CGFloat = 0.0
+        
+        // Check which asset type is loading to apply independent size & position logic
+        if component.textureName == "foam_ornament" {
+            // Apply customized small size parameters for active gameplay loop context
+            let targetHeight = scene.size.height * gameFoamHeightMultiplier
+            let aspectRatio = textureSize.width / textureSize.height
+            let targetWidth = targetHeight * aspectRatio
+            let finalWidth = max(targetWidth, scene.size.width) + overlapOverride
+            finalSize = CGSize(width: finalWidth, height: targetHeight)
+            finalYOffset = gameFoamYOffset
+            
+        } else if component.textureName == "menu_ornament_1" {
+            // Apply original menu size configuration bounds comfortably
             let targetHeight = scene.size.height * foamHeightMultiplier
             let aspectRatio = textureSize.width / textureSize.height
             let targetWidth = targetHeight * aspectRatio
             let finalWidth = max(targetWidth, scene.size.width) + overlapOverride
             finalSize = CGSize(width: finalWidth, height: targetHeight)
+            finalYOffset = foamYOffset
+            
         } else {
-            // Scale background tiles to fill the screen
+            // Scale background tiles to fill the screen bounds completely
             let scale = max(scene.size.width / textureSize.width, scene.size.height / textureSize.height)
             finalSize = CGSize(width: (textureSize.width * scale) + overlapOverride, height: textureSize.height * scale)
+            finalYOffset = 0.0
         }
         
-        // The scroll distance is the width of one node minus the overlap "glue"
         let scrollDistance = finalSize.width - overlapOverride
         let duration = TimeInterval(scrollDistance / component.scrollSpeed)
         
-        // Sync using system uptime to maintain continuity across scenes
         let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
-        let totalOffset = (elapsed * component.scrollSpeed).truncatingRemainder(dividingBy: scrollDistance)
+        let totalOffset = component.scrollSpeed > 0 ? (elapsed * component.scrollSpeed).truncatingRemainder(dividingBy: scrollDistance) : 0.0
 
-        // Using 3 NODES for a perfect "handshake" loop to prevent blank space gaps
         for i in 0...2 {
             let node = SKSpriteNode(texture: texture, size: finalSize)
-            node.anchorPoint = CGPoint(x: 0, y: 0) // Bottom-left anchoring for predictable math
+            node.anchorPoint = CGPoint(x: 0, y: 0)
             node.zPosition = component.zPosition
             
-            // Positioning node 'i' exactly one scrollDistance apart
             let startX = totalOffset - (CGFloat(i) * scrollDistance)
-            let startY = (component.textureName == "menu_ornament_1") ? foamYOffset : 0
-            node.position = CGPoint(x: startX, y: startY)
+            node.position = CGPoint(x: startX, y: finalYOffset)
             
-            // Handshake animation: move right by one distance, then snap back
-            let move = SKAction.moveBy(x: scrollDistance, y: 0, duration: duration)
-            let reset = SKAction.moveBy(x: -scrollDistance, y: 0, duration: 0)
-            node.run(SKAction.repeatForever(SKAction.sequence([move, reset])))
+            if component.scrollSpeed > 0 {
+                let move = SKAction.moveBy(x: scrollDistance, y: 0, duration: duration)
+                let reset = SKAction.moveBy(x: -scrollDistance, y: 0, duration: 0)
+                node.run(SKAction.repeatForever(SKAction.sequence([move, reset])))
+            }
             
             if addToContainer {
                 ornamentContainer?.addChild(node)
@@ -133,12 +166,10 @@ final class BackgroundManager {
     }
     
     // MARK: - Animation Logic
-    
-    /// Animates the foam and characters up or down
     func setOrnamentsVisible(_ visible: Bool, animated: Bool = true) {
         guard let container = ornamentContainer else { return }
         
-        let targetY: CGFloat = visible ? 0 : -650 // Pushed below the screen to hide
+        let targetY: CGFloat = visible ? 0 : -650
         container.removeAllActions()
         
         if animated {
@@ -151,19 +182,15 @@ final class BackgroundManager {
     }
     
     // MARK: - Brightness Logic
-    
-    /// Only dims the background tiles. Ornaments and UI remain at full brightness.
     func applyBrightness(_ value: CGFloat) {
         let brightness = max(0, min(1, value))
         let blendFactor = 1 - brightness
         
-        // Dim the tiled background nodes
         for node in backgroundNodes {
             node.color = .black
             node.colorBlendFactor = blendFactor
         }
         
-        // Reset/Maintain ornaments at full brightness
         ornamentContainer?.children.compactMap { $0 as? SKSpriteNode }.forEach {
             $0.colorBlendFactor = 0
             $0.color = .white

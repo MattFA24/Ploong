@@ -89,6 +89,8 @@ final class GameLoopScene: SKScene {
         spawnerSystem.onEntitySpawned = spawnHandler
         
         setupWorld()
+        BackgroundManager.shared.setupBackground(in: self)
+        BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
         buildGameHUD()
         stateMachine.enter(PlayingState.self)
     }
@@ -139,15 +141,21 @@ final class GameLoopScene: SKScene {
         let scoreBoxScale: CGFloat = 0.70
         let scoreBoxPosition = CGPoint(x: 150, y: size.height - 70)
         
-        let hudFontSize: CGFloat = 16.0
-        let titleColumnX: CGFloat = scoreBoxPosition.x - 75
-        let valueColumnX: CGFloat = scoreBoxPosition.x + 75
+        let hudFontSize: CGFloat = 26.0
+        let titleColumnX: CGFloat = scoreBoxPosition.x - 100
         
-        let rowScoreY: CGFloat = scoreBoxPosition.y + 10
-        let rowCoinY: CGFloat = scoreBoxPosition.y - 12
+        // HORIZONTAL SPACING TWEAKABLES:
+        // Adjust these offsets to increase or decrease the gap from the label to its amount.
+        // Higher values move the amounts further to the right.
+        let scoreValueOffsetX: CGFloat = 200
+        let coinValueOffsetX: CGFloat = 200
+        
+        let rowScoreY: CGFloat = scoreBoxPosition.y + 24
+        let rowCoinY: CGFloat = scoreBoxPosition.y - 10
         
         let pauseHintScale: CGFloat = 0.85
         let pauseHintPosition = CGPoint(x: size.width - 170, y: size.height - 60)
+        let pauseHintTextPosition = CGPoint(x: size.width - 170, y: size.height - 53)
         // -------------------------------------------------------------
         
         // 1. Top Left Highscore Frame
@@ -161,7 +169,7 @@ final class GameLoopScene: SKScene {
         
         // --- ROW 1: SCORE ---
         let scoreTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        scoreTitle.text = "score"
+        scoreTitle.text = "Score"
         scoreTitle.fontSize = hudFontSize
         scoreTitle.fontColor = .black
         scoreTitle.horizontalAlignmentMode = .left
@@ -175,14 +183,14 @@ final class GameLoopScene: SKScene {
         scoreVal.fontColor = .black
         scoreVal.horizontalAlignmentMode = .right
         scoreVal.verticalAlignmentMode = .center
-        scoreVal.position = CGPoint(x: valueColumnX, y: rowScoreY)
+        scoreVal.position = CGPoint(x: titleColumnX + scoreValueOffsetX, y: rowScoreY)
         scoreVal.zPosition = 90
         addChild(scoreVal)
         self.scoreValueLabel = scoreVal
         
         // --- ROW 2: COIN ---
         let coinTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        coinTitle.text = "coin"
+        coinTitle.text = "Coin"
         coinTitle.fontSize = hudFontSize
         coinTitle.fontColor = .black
         coinTitle.horizontalAlignmentMode = .left
@@ -196,7 +204,7 @@ final class GameLoopScene: SKScene {
         coinVal.fontColor = .black
         coinVal.horizontalAlignmentMode = .right
         coinVal.verticalAlignmentMode = .center
-        coinVal.position = CGPoint(x: valueColumnX, y: rowCoinY)
+        coinVal.position = CGPoint(x: titleColumnX + coinValueOffsetX, y: rowCoinY)
         coinVal.zPosition = 90
         addChild(coinVal)
         self.coinValueLabel = coinVal
@@ -204,7 +212,7 @@ final class GameLoopScene: SKScene {
         // Update values explicitly
         updateScoreDisplay(0)
         updateCoinCounter(player.component(ofType: StatsComponent.self)?.coinsCollected ?? 0)
-
+        
         // 2. Top Right Pause Hint Frame Layout
         let hintBgTex = SKTexture(imageNamed: "pause_hint_bg")
         hintBgTex.filteringMode = .nearest
@@ -217,7 +225,7 @@ final class GameLoopScene: SKScene {
         let hintTextTex = SKTexture(imageNamed: "pause_hint_text")
         hintTextTex.filteringMode = .nearest
         let hintTextSprite = SKSpriteNode(texture: hintTextTex)
-        hintTextSprite.position = pauseHintPosition
+        hintTextSprite.position = pauseHintTextPosition
         hintTextSprite.setScale(pauseHintScale)
         hintTextSprite.zPosition = 90
         addChild(hintTextSprite)

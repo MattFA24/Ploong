@@ -33,14 +33,6 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
                   let playerEntity = playerNode.entity,
                   let statsComp = playerEntity.component(ofType: StatsComponent.self) else { return }
             
-            // sfx
-            switch gateComp.type {
-            case .add, .multiply:
-                AudioManager.shared.playSFX(named: "sfx_gate_powerup")
-            case .subtract, .divide:
-                AudioManager.shared.playSFX(named: "sfx_gate_powerdown")
-            }
-            
             // Remove the gate we touched
             gateNode.removeFromParent()
             
@@ -124,9 +116,6 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
             // Apply Damage
             bulletNode.removeFromParent()
             hpComp.currentHP -= damageComp.amount
-            
-            // sfx bullet hit poop
-            AudioManager.shared.playSFX(named: "sfx_shoot")
             
             // Check if Enemy Died
             if hpComp.currentHP <= 0 {

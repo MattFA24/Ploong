@@ -85,7 +85,7 @@ final class CharactersScene: SKScene {
         let closeTex = SKTexture(imageNamed: "close_button")
         closeTex.filteringMode = .nearest
         let closeButton = SKSpriteNode(texture: closeTex)
-        closeButton.name      = "closeButton"
+        closeButton.name    = "closeButton"
         closeButton.position  = CGPoint(x: -mWidth * 0.44, y: modal.size.height * 0.40 / modal.yScale)
         closeButton.zPosition = 10
         modal.addChild(closeButton)
@@ -106,13 +106,13 @@ final class CharactersScene: SKScene {
         coinBg.addChild(coinImg)
 
         let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        lbl.text                    = "\(UserDefaults.standard.integer(forKey: "TotalCoins"))"
-        lbl.fontSize                = 28
-        lbl.fontColor               = .black
+        lbl.text                = "\(UserDefaults.standard.integer(forKey: "TotalCoins"))"
+        lbl.fontSize            = 28
+        lbl.fontColor           = .black
         lbl.horizontalAlignmentMode = .left
         lbl.verticalAlignmentMode   = .center
-        lbl.position                = CGPoint(x: -10, y: 0)
-        lbl.zPosition               = 1
+        lbl.position            = CGPoint(x: -10, y: 0)
+        lbl.zPosition           = 1
         coinBg.addChild(lbl)
         coinLabel = lbl
 
@@ -127,7 +127,7 @@ final class CharactersScene: SKScene {
             tex.filteringMode = .nearest
 
             let char = SKSpriteNode(texture: tex)
-            char.name        = "char_\(i)"
+            char.name      = "char_\(i)"
             char.anchorPoint = CGPoint(x: 0.5, y: 0.5)
             char.position    = CGPoint(x: startX + CGFloat(i) * charSpacing, y: charY)
             char.zPosition   = 3
@@ -184,17 +184,14 @@ final class CharactersScene: SKScene {
     }
 
     // MARK: - Purchase modal
-    // Uses asset images only — no labels, no close button
-    // Enter = confirm purchase, Escape = cancel
 
     private func setupPurchaseModal() {
         purchaseModal            = SKNode()
-        purchaseModal?.zPosition = 100   // well above everything (main modal is at zPos 1)
+        purchaseModal?.zPosition = 100
         purchaseModal?.position  = .zero
         purchaseModal?.isHidden  = true
         addChild(purchaseModal!)
 
-        // Full-scene dimmer anchored at scene origin
         let pmDimmer = SKShapeNode(rectOf: size)
         pmDimmer.fillColor   = NSColor(white: 0, alpha: 0.6)
         pmDimmer.strokeColor = .clear
@@ -202,26 +199,23 @@ final class CharactersScene: SKScene {
         pmDimmer.zPosition   = 0
         purchaseModal?.addChild(pmDimmer)
 
-        // Confirmation background — all text is baked into the asset
         let bg      = SKSpriteNode(imageNamed: "unlock_confirmation_1")
         bg.name     = "modalBg"
         bg.position = CGPoint(x: size.width * 0.5, y: size.height * 0.5)
         bg.zPosition = 1
         purchaseModal?.addChild(bg)
 
-        // Coin image before the price text (sits left of center on the bg)
         let confirmCoin = SKSpriteNode(imageNamed: "coin_img")
+        confirmCoin.texture?.filteringMode = .nearest
         confirmCoin.position  = CGPoint(x: -20, y: 10)
         confirmCoin.zPosition = 2
         bg.addChild(confirmCoin)
 
-        // Yes/confirm button — text baked into asset
         let yesBtn       = SKSpriteNode(imageNamed: "unlock_confirmation_2")
         yesBtn.name      = "pmYes"
         yesBtn.position  = CGPoint(x: 0, y: -90)
         yesBtn.zPosition = 2
         bg.addChild(yesBtn)
-        // No close button — use Escape key to cancel
     }
 
     // MARK: - Selection UI
@@ -237,11 +231,11 @@ final class CharactersScene: SKScene {
 
             let assetName = isOwned ? "\(charName.lowercased())_char" : "unknown_\(charName.lowercased())"
             let tex       = SKTexture(imageNamed: assetName)
-            tex.filteringMode      = .nearest
-            node.texture           = tex
+            tex.filteringMode = .nearest
+            node.texture      = tex
 
             let lblTex = SKTexture(imageNamed: isOwned ? "\(charName.lowercased())_text" : "unknown_text")
-            lblTex.filteringMode           = .nearest
+            lblTex.filteringMode         = .nearest
             characterLabels[index].texture = lblTex
 
             let baseScale   = charBaseWidth / tex.size().width
@@ -270,61 +264,42 @@ final class CharactersScene: SKScene {
         let highlightedOwned  = owned.contains(charNames[currentlyHighlightedIndex])
         let isAlreadySelected = (currentlyHighlightedIndex == currentlySelectedCharacterIndex)
 
-        // Button state:
-        // owned + already selected  → "selected_button"   (no price tag)
-        // owned + not selected yet  → "unselected_button" (no price tag)
-        // not owned                 → "unselected_button" hidden + coin+20 shown via priceTagNode
+        selectButton?.parent?.childNode(withName: "priceNode")?.removeFromParent()
+
         if highlightedOwned {
             let btnTexName = isAlreadySelected ? "selected_button" : "unselected_button"
             let btnTex = SKTexture(imageNamed: btnTexName)
-            btnTex.filteringMode  = .nearest
-            selectButton?.texture = btnTex
+            btnTex.filteringMode   = .nearest
+            selectButton?.texture  = btnTex
             selectButton?.isHidden = false
-            // Remove any price overlay children from previous state
-            selectButton?.childNode(withName: "priceOverlay")?.removeFromParent()
         } else {
-            // Not owned — swap button to unselected_button and overlay coin+20 on top
-            // We hide the baked-in text by using a fresh node approach:
-            // Show unselected_button as base but cover it with a coin+number overlay
-            let btnTex = SKTexture(imageNamed: "unselected_button")
-            btnTex.filteringMode  = .nearest
-            selectButton?.texture = btnTex
-            selectButton?.isHidden = false
+            selectButton?.isHidden = true
 
-            // Remove old overlay if re-entering this state
-            selectButton?.childNode(withName: "priceOverlay")?.removeFromParent()
-
-            // Price overlay node covers the button text with coin + 20
-            let overlay = SKNode()
-            overlay.name      = "priceOverlay"
-            overlay.zPosition = 2
-
-            // White background rectangle to hide the baked "select" text
-            let cover = SKShapeNode(rectOf: CGSize(width: 160, height: 40), cornerRadius: 4)
-            cover.fillColor   = NSColor(red: 0.35, green: 0.65, blue: 0.72, alpha: 1.0) // matches button color
-            cover.strokeColor = .clear
-            cover.position    = .zero
-            overlay.addChild(cover)
+            let priceNode = SKNode()
+            priceNode.name      = "priceNode"
+            priceNode.position  = selectButton?.position ?? .zero
+            priceNode.zPosition = 5
 
             let priceCoin = SKSpriteNode(imageNamed: "coin_img")
-            priceCoin.position = CGPoint(x: -20, y: 0)
-            overlay.addChild(priceCoin)
+            priceCoin.texture?.filteringMode = .nearest
+            priceCoin.position      = CGPoint(x: -20, y: 0)
+            priceNode.addChild(priceCoin)
 
             let priceNum = SKSpriteNode(imageNamed: "20")
-            priceNum.position = CGPoint(x: 20, y: 0)
-            overlay.addChild(priceNum)
+            priceNum.texture?.filteringMode = .nearest
+            priceNum.position      = CGPoint(x: 20, y: 0)
+            priceNode.addChild(priceNum)
 
-            selectButton?.addChild(overlay)
+            selectButton?.parent?.addChild(priceNode)
         }
     }
 
     // MARK: - Input (mouse)
 
     override func mouseDown(with event: NSEvent) {
-        let location     = event.location(in: self)
+        let location    = event.location(in: self)
         let nodesAtPoint = nodes(at: location)
 
-        // Purchase modal is open — only pmYes click works; Escape handled in keyDown
         if purchaseModal?.isHidden == false {
             if nodesAtPoint.contains(where: { $0.name == "pmYes" }) { attemptPurchase() }
             return
@@ -349,9 +324,11 @@ final class CharactersScene: SKScene {
                 currentlySelectedCharacterIndex = currentlyHighlightedIndex
                 CharacterManager.shared.equipCharacter(name: charName)
                 refreshSelectionUI()
-            } else {
-                purchaseModal?.isHidden = false
             }
+        }
+
+        if nodesAtPoint.contains(where: { $0.name == "priceNode" || $0.parent?.name == "priceNode" }) {
+            purchaseModal?.isHidden = false
         }
     }
 
@@ -360,9 +337,9 @@ final class CharactersScene: SKScene {
     override func keyDown(with event: NSEvent) {
         guard purchaseModal?.isHidden == false else { return }
         switch event.keyCode {
-        case 36, 76: // Return / Enter
+        case 36, 76:
             attemptPurchase()
-        case 53:     // Escape
+        case 53:
             purchaseModal?.isHidden = true
         default:
             break
@@ -378,7 +355,6 @@ final class CharactersScene: SKScene {
             purchaseModal?.isHidden = true
             refreshSelectionUI()
         } else {
-            // Not enough coins — shake the dialog
             purchaseModal?.childNode(withName: "modalBg")?.run(SKAction.sequence([
                 SKAction.moveBy(x:  10, y: 0, duration: 0.05),
                 SKAction.moveBy(x: -20, y: 0, duration: 0.05),

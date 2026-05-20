@@ -84,8 +84,16 @@ final class CollisionManager: NSObject, SKPhysicsContactDelegate {
                   let playerEntity = playerNode.entity,
                   let statsComp = playerEntity.component(ofType: StatsComponent.self) else { return }
 
+            // Update session coins
             statsComp.coinsCollected += coinComp.value
             onCoinsChanged?(statsComp.coinsCollected)
+            
+            // ----------------------------------------------------
+            // NEW: Save to global TotalCoins immediately
+            let currentTotalCoins = UserDefaults.standard.integer(forKey: "TotalCoins")
+            UserDefaults.standard.set(currentTotalCoins + coinComp.value, forKey: "TotalCoins")
+            // ----------------------------------------------------
+            
             AudioManager.shared.playSFX(named: "sfx_coin")
             coinNode.removeFromParent()
         }

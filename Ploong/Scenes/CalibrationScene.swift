@@ -168,7 +168,7 @@ final class CalibrationScene: SKScene {
         #endif
     }
 
-    #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
+#if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
     private func makeOverlayLabel(fontSize: CGFloat) -> NSTextField {
         let label = NSTextField(labelWithString: "")
         label.alignment = .center
@@ -182,6 +182,9 @@ final class CalibrationScene: SKScene {
         label.isEditable = false
         label.isSelectable = false
         label.wantsLayer = true
+        
+        label.autoresizingMask = [.width, .minYMargin, .maxYMargin]
+        
         label.layer?.shadowColor = NSColor.black.cgColor
         label.layer?.shadowOpacity = 0.85
         label.layer?.shadowRadius = 5
@@ -189,7 +192,7 @@ final class CalibrationScene: SKScene {
         return label
     }
     #endif
-
+    
     private func layoutOverlayViews() {
         #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
         guard let view else {

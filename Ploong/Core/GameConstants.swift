@@ -17,8 +17,8 @@ enum GameConstants {
     static var gateTopY: CGFloat = 540
     static var bottomEnemyFootOffset: CGFloat = 75
     static var topEnemyFootOffset: CGFloat = 80
-    static var bottomPlayerFootOffset: CGFloat = 0
-    static var topPlayerFootOffset: CGFloat = 0
+    static var bottomPlayerFootOffset: CGFloat = -40
+    static var topPlayerFootOffset: CGFloat = -45
     
     static let objectSpeed: CGFloat = 220
     static let spawnInterval: TimeInterval = 4.0

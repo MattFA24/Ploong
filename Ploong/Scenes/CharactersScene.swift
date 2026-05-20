@@ -77,7 +77,12 @@ final class CharactersScene: SKScene {
         closeButton.zPosition = 10 // High Z-position
         modal.addChild(closeButton)
 
+        // ----------------------------------------------------
         // Coin Logic - Ensure coin is child of modal and has high Z-index
+        // NEW: Fetch the actual saved coins instead of a hardcoded number
+        let totalCoins = UserDefaults.standard.integer(forKey: "TotalCoins")
+        // ----------------------------------------------------
+        
         let coinBgTexture = SKTexture(imageNamed: "coin_bg")
         coinBgTexture.filteringMode = .nearest
         let coinBg = SKSpriteNode(texture: coinBgTexture)
@@ -93,7 +98,7 @@ final class CharactersScene: SKScene {
         coinBg.addChild(coinImg)
 
         let coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        coinLabel.text = "67"
+        coinLabel.text = "\(totalCoins)" // UPDATED HERE: Uses the variable instead of "67"
         coinLabel.fontSize = 28
         coinLabel.fontColor = .black
         coinLabel.horizontalAlignmentMode = .left
@@ -103,10 +108,25 @@ final class CharactersScene: SKScene {
         coinBg.addChild(coinLabel)
 
         // Setup Characters
+        let characterAssetNames = [
+            "joy_char",
+            "unknown_tiu",
+            "unknown_jevon",
+            "unknown_vey",
+            "unknown_farrell"
+        ]
+        
+        let labelAssetNames = [
+            "joy_text",
+            "unknown_text",
+            "unknown_text",
+            "unknown_text",
+            "unknown_text"
+        ]
+        
         let startX = -CGFloat(charCount - 1) * charSpacing * 0.5
         for i in 0..<charCount {
-            let isJoy = (i == 0)
-            let tex = SKTexture(imageNamed: isJoy ? "joy_char" : "unknown_char")
+            let tex = SKTexture(imageNamed: characterAssetNames[i])
             tex.filteringMode = .nearest
             
             let char = SKSpriteNode(texture: tex)
@@ -121,7 +141,7 @@ final class CharactersScene: SKScene {
             modal.addChild(char)
             characterNodes.append(char)
             
-            let lTex = SKTexture(imageNamed: isJoy ? "joy_text" : "unknown_text")
+            let lTex = SKTexture(imageNamed: labelAssetNames[i])
             lTex.filteringMode = .nearest
             let labelSprite = SKSpriteNode(texture: lTex)
             labelSprite.anchorPoint = CGPoint(x: 0.5, y: 1.0)
@@ -216,3 +236,4 @@ final class CharactersScene: SKScene {
         view.presentScene(scene)
     }
 }
+

@@ -10,9 +10,22 @@
 		63DC101D2FB1791000EA7428 /* Ploong.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ploong.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0AE5EE0E2FBBF736008BC63A /* Exceptions for "Ploong" folder in "Ploong" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 63DC101C2FB1791000EA7428 /* Ploong */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		63DC101F2FB1791000EA7428 /* Ploong */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0AE5EE0E2FBBF736008BC63A /* Exceptions for "Ploong" folder in "Ploong" target */,
+			);
 			path = Ploong;
 			sourceTree = "<group>";
 		};
@@ -250,6 +263,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -268,6 +282,8 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Ploong;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -278,7 +294,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tiutiu.Ploong;
+				PRODUCT_BUNDLE_IDENTIFIER = com.JevonIK.Ploong;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -295,6 +311,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -313,6 +330,8 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Ploong;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.arcade-games";
 				INFOPLIST_KEY_NSCameraUsageDescription = "";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
@@ -323,7 +342,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.tiutiu.Ploong;
+				PRODUCT_BUNDLE_IDENTIFIER = com.JevonIK.Ploong;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;

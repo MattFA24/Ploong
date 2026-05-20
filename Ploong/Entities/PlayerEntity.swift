@@ -26,7 +26,7 @@ final class PlayerEntity: GameEntity {
         
         static let bulletSpawnOffset = CGPoint(
             x: visualSize.width * 0.3,
-            y: -visualSize.height * 0.08
+            y: -visualSize.height * 0.01 + 5
         )
     }
     init(position: CGPoint) {

@@ -18,16 +18,17 @@ final class PlayerEntity: GameEntity {
             height: visualHeight
         )
         static let visualHalfHeight = visualSize.height * 0.5
+        
         static let hitboxCenter = CGPoint(
             x: 0,
-            y: (-visualSize.height + hitboxSize.height) * 0.5
+            y: ((-visualSize.height + hitboxSize.height) * 0.5) + 40
         )
+        
         static let bulletSpawnOffset = CGPoint(
             x: visualSize.width * 0.3,
-            y: -visualSize.height * 0.08
+            y: -visualSize.height * 0.01 + 5
         )
     }
-
     init(position: CGPoint) {
         super.init()
         

@@ -4,7 +4,7 @@
 <dict>
 	<key>CFBundleIdentifier</key>
 	<string></string>
-	<key>NSCameraReactionEffectGesturesEnabledDefault</key>
-	<true/>
+	<key>CFBundleExecutable</key>
+	<string></string>
 </dict>
 </plist>

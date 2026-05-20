@@ -308,7 +308,7 @@ final class SpawnerSystem {
                 var divisorPool: [CGFloat] = [2]
                 if timeSurvived >= 150 && (currentPlayerPower >= 800 || progress >= 0.35) { divisorPool.append(3) }
                 if timeSurvived >= 240 && (currentPlayerPower >= 2_500 || progress >= 0.75) { divisorPool.append(5) }
-                return GateComponent(type: .divide, value: divisorPool.randomElement()!, text: "/", waveID: 0, lane: 0)
+                return GateComponent(type: .divide, value: divisorPool.randomElement()!, text: "÷", waveID: 0, lane: 0)
             }
         } else {
             if isTop {

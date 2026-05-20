@@ -89,6 +89,8 @@ final class GameLoopScene: SKScene {
         spawnerSystem.onEntitySpawned = spawnHandler
         
         setupWorld()
+        BackgroundManager.shared.setupBackground(in: self)
+        BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
         buildGameHUD()
         stateMachine.enter(PlayingState.self)
     }
@@ -148,6 +150,7 @@ final class GameLoopScene: SKScene {
         
         let pauseHintScale: CGFloat = 0.85
         let pauseHintPosition = CGPoint(x: size.width - 170, y: size.height - 60)
+        let pauseHintTextPosition = CGPoint(x: size.width - 170, y: size.height - 53)
         // -------------------------------------------------------------
         
         // 1. Top Left Highscore Frame
@@ -217,7 +220,7 @@ final class GameLoopScene: SKScene {
         let hintTextTex = SKTexture(imageNamed: "pause_hint_text")
         hintTextTex.filteringMode = .nearest
         let hintTextSprite = SKSpriteNode(texture: hintTextTex)
-        hintTextSprite.position = pauseHintPosition
+        hintTextSprite.position = pauseHintTextPosition
         hintTextSprite.setScale(pauseHintScale)
         hintTextSprite.zPosition = 90
         addChild(hintTextSprite)

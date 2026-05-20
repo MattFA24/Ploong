@@ -35,7 +35,12 @@ final class BackgroundManager {
     // MARK: - Background Tile Settings
     private let backgroundOverlap: CGFloat = 2.0
 
-    private init() {}
+    private init() {
+        // 🌟 PERBAIKAN: Mendaftarkan nilai default (100% terang) untuk pertama kali game dibuka
+        UserDefaults.standard.register(defaults: [
+            "backgroundBrightness": 1.0
+        ])
+    }
 
     /// Sets up the entire visual stack: Tiled Background -> Foam Parallax -> Static Art
     func setupBackground(in scene: SKScene) {
@@ -85,6 +90,7 @@ final class BackgroundManager {
             zPosition: 5
         )
         
+        // 🌟 Terapkan setting kecerahan yang tersimpan saat scene dimuat
         createScrollingLayer(
             in: scene,
             with: foamComp,
@@ -160,7 +166,7 @@ final class BackgroundManager {
                 ornamentContainer?.addChild(node)
             } else {
                 scene.addChild(node)
-                backgroundNodes.append(node)
+                backgroundNodes.append(node) // 🌟 MENYIMPAN NODE KE ARRAY
             }
         }
     }
@@ -183,9 +189,10 @@ final class BackgroundManager {
     
     // MARK: - Brightness Logic
     func applyBrightness(_ value: CGFloat) {
-        let brightness = max(0, min(1, value))
-        let blendFactor = 1 - brightness
+        let brightness = max(0.0, min(1.0, value))
+        let blendFactor = 1.0 - brightness
         
+        // Dim the tiled background nodes (Bisa bekerja real-time karena node tersimpan di array!)
         for node in backgroundNodes {
             node.color = .black
             node.colorBlendFactor = blendFactor
@@ -197,13 +204,16 @@ final class BackgroundManager {
         }
     }
     
+    // 🌟 PERBAIKAN: Fungsi Load dan Save diperbarui agar bersih dan responsif
     func loadBrightness() -> CGFloat {
-        let stored = UserDefaults.standard.object(forKey: "backgroundBrightness") as? NSNumber
-        return CGFloat(stored?.doubleValue ?? 0.5)
+        return CGFloat(UserDefaults.standard.float(forKey: "backgroundBrightness"))
     }
     
     func saveBrightness(_ value: CGFloat) {
-        UserDefaults.standard.set(value, forKey: "backgroundBrightness")
-        applyBrightness(value)
+        let clampedValue = max(0.0, min(1.0, value))
+        UserDefaults.standard.set(clampedValue, forKey: "backgroundBrightness")
+        
+        // Terapkan langsung secara real-time
+        applyBrightness(clampedValue)
     }
 }

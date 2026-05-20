@@ -77,7 +77,12 @@ final class CharactersScene: SKScene {
         closeButton.zPosition = 10 // High Z-position
         modal.addChild(closeButton)
 
+        // ----------------------------------------------------
         // Coin Logic - Ensure coin is child of modal and has high Z-index
+        // NEW: Fetch the actual saved coins instead of a hardcoded number
+        let totalCoins = UserDefaults.standard.integer(forKey: "TotalCoins")
+        // ----------------------------------------------------
+        
         let coinBgTexture = SKTexture(imageNamed: "coin_bg")
         coinBgTexture.filteringMode = .nearest
         let coinBg = SKSpriteNode(texture: coinBgTexture)
@@ -93,7 +98,7 @@ final class CharactersScene: SKScene {
         coinBg.addChild(coinImg)
 
         let coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        coinLabel.text = "67"
+        coinLabel.text = "\(totalCoins)" // UPDATED HERE: Uses the variable instead of "67"
         coinLabel.fontSize = 28
         coinLabel.fontColor = .black
         coinLabel.horizontalAlignmentMode = .left
@@ -231,3 +236,4 @@ final class CharactersScene: SKScene {
         view.presentScene(scene)
     }
 }
+

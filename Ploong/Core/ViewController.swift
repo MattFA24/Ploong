@@ -14,7 +14,7 @@ final class ViewController: NSViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        UserDefaults.standard.set(100, forKey: "TotalCoins")
         let scene = MenuScene(size: targetSceneSize)
         scene.scaleMode = .aspectFit
 

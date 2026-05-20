@@ -89,6 +89,8 @@ final class GameLoopScene: SKScene {
         spawnerSystem.onEntitySpawned = spawnHandler
         
         setupWorld()
+        BackgroundManager.shared.setupBackground(in: self)
+        BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
         buildGameHUD()
         stateMachine.enter(PlayingState.self)
     }

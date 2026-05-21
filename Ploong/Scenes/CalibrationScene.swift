@@ -1,10 +1,3 @@
-//
-//  CalibrationScene.swift
-//  Ploong
-//
-//  Created by Matthew Fernando Anggrian on 11/05/26.
-//
-
 import SpriteKit
 
 #if canImport(AppKit) && canImport(AVFoundation) && canImport(Vision)
@@ -508,7 +501,7 @@ final class CalibrationScene: SKScene {
 
     private func presentGameLoop() {
         guard let view = view else { return }
-        let scene = GameLoopScene(size: size)
+        let scene = WarningScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }

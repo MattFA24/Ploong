@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "safe_zone_dark.png",
+      "filename" : "warning.png",
       "idiom" : "universal",
       "scale" : "1x"
     },

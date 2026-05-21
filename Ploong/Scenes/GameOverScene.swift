@@ -44,7 +44,7 @@ final class GameOverScene: SKScene {
         let buttonYOffset: CGFloat = -size.height * 0.28
         let buttonSpacingX: CGFloat = size.width * 0.22
         
-        let fontName = "AvenirNext-Bold"
+        let fontName = GameConstants.fontName
         let labelFontSize: CGFloat = 39.0
         
         // Horizontal separation constants (gaps from center point)

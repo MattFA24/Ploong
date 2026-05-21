@@ -56,7 +56,7 @@ final class InfoScene: SKScene {
         
         // MARK: - Title
         
-        let titleLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
+        let titleLabel = SKLabelNode(fontNamed: GameConstants.fontName)
         titleLabel.text = "Attribution"
         titleLabel.fontSize = 38
         titleLabel.fontColor = SKColor(
@@ -81,15 +81,15 @@ final class InfoScene: SKScene {
         var leftY = modalContentHeight * 0.12
         
         let leftColumn: [(String, CGFloat, String, CGFloat)] = [
-            ("Font Credits", 24, "Helvetica-Bold", 34),
+            ("Font Credits", 24, GameConstants.fontName, 34),
             
-            ("Grape Soda by jeti", 20, "Helvetica-Bold", 22),
-            ("Licensed under CC BY 4.0", 15, "Helvetica", 20),
-            ("https://creativecommons.org/licenses/by/4.0/", 11, "Helvetica", 18),
-            ("https://fontenddev.com/fonts/grape-soda/", 11, "Helvetica", 38),
+            ("Grape Soda by jeti", 20, GameConstants.fontName, 22),
+            ("Licensed under CC BY 4.0", 15, GameConstants.fontName, 20),
+            ("https://creativecommons.org/licenses/by/4.0/", 11, GameConstants.fontName, 18),
+            ("https://fontenddev.com/fonts/grape-soda/", 11, GameConstants.fontName, 38),
             
-            ("EAS VHS by rurr", 20, "Helvetica-Bold", 22),
-            ("https://rurr.itch.io/eas-vhs", 11, "Helvetica", 0)
+            ("EAS VHS by rurr", 20, GameConstants.fontName, 22),
+            ("https://rurr.itch.io/eas-vhs", 11, GameConstants.fontName, 0)
         ]
         
         for line in leftColumn {
@@ -127,13 +127,13 @@ final class InfoScene: SKScene {
         var rightY = modalContentHeight * 0.12
         
         let rightColumn: [(String, CGFloat, String, CGFloat)] = [
-            ("Music Credits", 24, "Helvetica-Bold", 34),
+            ("Music Credits", 24, GameConstants.fontName, 34),
             
-            ("\"Pixel Paradise\" by kissan4", 20, "Helvetica-Bold", 22),
-            ("https://pixabay.com/music/video-games-pixel-paradise-358340/", 11, "Helvetica", 42),
+            ("\"Pixel Paradise\" by kissan4", 20, GameConstants.fontName, 22),
+            ("https://pixabay.com/music/video-games-pixel-paradise-358340/", 11, GameConstants.fontName, 42),
             
-            ("\"8 Bit Win\" by HeatleyBros", 20, "Helvetica-Bold", 22),
-            ("https://youtu.be/wsrQogUxOIA", 11, "Helvetica", 0)
+            ("\"8 Bit Win\" by HeatleyBros", 20, GameConstants.fontName, 22),
+            ("https://youtu.be/wsrQogUxOIA", 11, GameConstants.fontName, 0)
         ]
         
         for line in rightColumn {

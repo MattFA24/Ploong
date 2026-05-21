@@ -35,7 +35,7 @@ final class EnemyEntity: GameEntity {
             }
             
             // HP Label
-            let hpLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            let hpLbl = SKLabelNode(fontNamed: GameConstants.fontName)
             hpLbl.name = "hpText"
             hpLbl.text = hpText
             hpLbl.fontSize = 13

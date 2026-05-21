@@ -55,112 +55,113 @@ final class InfoScene: SKScene {
         modal.addChild(closeButton)
         
         // MARK: - Title
+                
+        let titleTexture = SKTexture(imageNamed: "Attribution")
+        titleTexture.filteringMode = .nearest // Menjaga pixel art tetap tajam
         
-        let titleLabel = SKLabelNode(fontNamed: GameConstants.fontName)
-        titleLabel.text = "Attribution"
-        titleLabel.fontSize = 38
-        titleLabel.fontColor = SKColor(
-            red: 0.02,
-            green: 0.12,
-            blue: 0.15,
-            alpha: 1
-        )
-        titleLabel.position = CGPoint(
+        let titleSprite = SKSpriteNode(texture: titleTexture)
+        titleSprite.position = CGPoint(
             x: 0,
-            y: modalContentHeight * 0.30
+            y: modalContentHeight * 0.35 // Posisi Y tetap sama seperti sebelumnya
         )
-        titleLabel.horizontalAlignmentMode = .center
-        titleLabel.verticalAlignmentMode = .center
-        titleLabel.zPosition = 2
+        titleSprite.zPosition = 2
         
-        modal.addChild(titleLabel)
+        titleSprite.setScale(0.8)
         
-        // MARK: - Left Column
+        modal.addChild(titleSprite)
         
-        let leftX = -modalContentWidth * 0.27
-        var leftY = modalContentHeight * 0.12
         
-        let leftColumn: [(String, CGFloat, String, CGFloat)] = [
-            ("Font Credits", 24, GameConstants.fontName, 34),
+        // MARK: - Data Kolom (Font, Music, SFX)
+        
+        let startY = modalContentHeight * 0.25
+        
+        // Kolom 1: Kiri (Font)
+        let fontColumn: [(String, CGFloat, String, CGFloat)] = [
+            ("Font Credits", 28, GameConstants.fontName, 60),
             
-            ("Grape Soda by jeti", 20, GameConstants.fontName, 22),
-            ("Licensed under CC BY 4.0", 15, GameConstants.fontName, 20),
-            ("https://creativecommons.org/licenses/by/4.0/", 11, GameConstants.fontName, 18),
-            ("https://fontenddev.com/fonts/grape-soda/", 11, GameConstants.fontName, 38),
+            ("Grape Soda by jeti", 22, GameConstants.fontName, 26),
+            ("Licensed under CC BY 4.0", 16, GameConstants.fontName, 22),
+            ("https://creativecommons.org/licenses/by/4.0/", 13, GameConstants.fontName, 20),
+            ("https://fontenddev.com/fonts/grape-soda/", 13, GameConstants.fontName, 45),
             
-            ("EAS VHS by rurr", 20, GameConstants.fontName, 22),
-            ("https://rurr.itch.io/eas-vhs", 11, GameConstants.fontName, 0)
+            ("EAS VHS by rurr", 22, GameConstants.fontName, 26),
+            ("https://rurr.itch.io/eas-vhs", 13, GameConstants.fontName, 0)
         ]
         
-        for line in leftColumn {
-            let label = SKLabelNode(fontNamed: line.2)
-            label.text = line.0
-            label.fontSize = line.1
+        // Kolom 2: Tengah (Music)
+        let musicColumn: [(String, CGFloat, String, CGFloat)] = [
+            ("Music Credits", 28, GameConstants.fontName, 60),
             
-            // Warna teks utama hitam
-            if line.1 >= 15 {
-                label.fontColor = .black
-            } else {
-                // Warna link abu kebiruan
-                label.fontColor = SKColor(
-                    red: 0.32,
-                    green: 0.42,
-                    blue: 0.45,
-                    alpha: 1
-                )
-            }
+            ("\"Pixel Paradise\" by kissan4", 22, GameConstants.fontName, 26),
+            ("https://pixabay.com/music/video-games-pixel-paradise-358340/", 13, GameConstants.fontName, 50),
             
-            label.horizontalAlignmentMode = .left
-            label.verticalAlignmentMode = .top
-            
-            label.position = CGPoint(x: leftX, y: leftY)
-            label.zPosition = 2
-            
-            modal.addChild(label)
-            
-            leftY -= line.3
-        }
-        
-        // MARK: - Right Column
-        
-        let rightX = modalContentWidth * 0.03
-        var rightY = modalContentHeight * 0.12
-        
-        let rightColumn: [(String, CGFloat, String, CGFloat)] = [
-            ("Music Credits", 24, GameConstants.fontName, 34),
-            
-            ("\"Pixel Paradise\" by kissan4", 20, GameConstants.fontName, 22),
-            ("https://pixabay.com/music/video-games-pixel-paradise-358340/", 11, GameConstants.fontName, 42),
-            
-            ("\"8 Bit Win\" by HeatleyBros", 20, GameConstants.fontName, 22),
-            ("https://youtu.be/wsrQogUxOIA", 11, GameConstants.fontName, 0)
+            ("\"8 Bit Win\" by HeatleyBros", 22, GameConstants.fontName, 26),
+            ("https://youtu.be/wsrQogUxOIA", 13, GameConstants.fontName, 0)
         ]
         
-        for line in rightColumn {
-            let label = SKLabelNode(fontNamed: line.2)
-            label.text = line.0
-            label.fontSize = line.1
+        // Kolom 3: Kanan (SFX)
+        let sfxColumn: [(String, CGFloat, String, CGFloat)] = [
+            ("SFX Credits", 28, GameConstants.fontName, 60),
             
-            if line.1 >= 15 {
-                label.fontColor = .black
-            } else {
-                label.fontColor = SKColor(
-                    red: 0.32,
-                    green: 0.42,
-                    blue: 0.45,
-                    alpha: 1
-                )
+            ("\"Coin Recieved\" by RibhavAgrawal", 22, GameConstants.fontName, 24),
+            ("https://pixabay.com/sound-effects/film-special-effects-coin-recieved-230517/", 13, GameConstants.fontName, 45),
+            
+            ("\"Power Up\" by PoorArtistt", 22, GameConstants.fontName, 24),
+            ("https://pixabay.com/sound-effects/film-special-effects-videogame-power-up-sound-effect-01-no-copyright-352863/", 13, GameConstants.fontName, 45),
+            
+            ("\"Power Off\" by DRAGON-STUDIO", 22, GameConstants.fontName, 24),
+            ("https://pixabay.com/sound-effects/film-special-effects-power-off-386180/", 13, GameConstants.fontName, 45),
+            
+            ("\"Cartoon Jump\" by DRAGON-STUDIO", 22, GameConstants.fontName, 24),
+            ("https://pixabay.com/sound-effects/film-special-effects-cartoon-jump-463196/", 13, GameConstants.fontName, 45),
+            
+            ("\"Cartoon Splat\" by Universfield", 22, GameConstants.fontName, 24),
+            ("https://pixabay.com/sound-effects/film-special-effects-cartoon-splat-310479/", 13, GameConstants.fontName, 45),
+            
+            ("\"Diarrhea\" by Sound Effects Official", 22, GameConstants.fontName, 24),
+            ("https://youtube.com/shorts/u18qxMF3ZOw?si=j1T9Wy6507Iv-hyq", 13, GameConstants.fontName, 0)
+        ]
+        
+        // 🌟 PERBAIKAN: Menentukan batas lebar maksimum pembungkus (width) untuk masing-masing kolom
+        let columns = [
+            (x: -modalContentWidth * 0.45, width: modalContentWidth * 0.30, data: fontColumn),
+            (x: -modalContentWidth * 0.12, width: modalContentWidth * 0.25, data: musicColumn),
+            (x: modalContentWidth * 0.15, width: modalContentWidth * 0.31, data: sfxColumn)
+        ]
+        
+        // MARK: - Label Generator
+        
+        for col in columns {
+            var currentY = startY
+            
+            for line in col.data {
+                let label = SKLabelNode(fontNamed: line.2)
+                label.text = line.0
+                label.fontSize = line.1
+                
+                // 🌟 KUNCI UTAMA 1: Aktifkan fitur multi-baris otomatis sesuai batas lebar kolom
+                label.numberOfLines = 0
+                label.preferredMaxLayoutWidth = col.width
+                
+                if line.1 >= 15 {
+                    label.fontColor = .black
+                } else {
+                    label.fontColor = SKColor(red: 0.32, green: 0.42, blue: 0.45, alpha: 1)
+                }
+                
+                label.horizontalAlignmentMode = .left
+                label.verticalAlignmentMode = .top
+                label.position = CGPoint(x: col.x, y: currentY)
+                label.zPosition = 2
+                
+                modal.addChild(label)
+                
+                // 🌟 KUNCI UTAMA 2: Deteksi tabrakan teks dinamis.
+                // Jika teks terpotong menjadi 2-3 baris, jarak Y otomatis bertambah lebar
+                // agar tidak menabrak baris teks di bawahnya.
+                let dynamicSpacing = max(line.3, label.frame.height + 6)
+                currentY -= dynamicSpacing
             }
-            
-            label.horizontalAlignmentMode = .left
-            label.verticalAlignmentMode = .top
-            
-            label.position = CGPoint(x: rightX, y: rightY)
-            label.zPosition = 2
-            
-            modal.addChild(label)
-            
-            rightY -= line.3
         }
     }
     

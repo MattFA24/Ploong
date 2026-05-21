@@ -51,7 +51,7 @@ final class BackgroundManager {
         
         let isGameplay = scene is GameLoopScene
         
-        // 1. Primary Tiled Background
+        // 1. Primary Tiled Background (Scrolls Left-to-Right in Main Menu)
         let tileComp = BackgroundComponent(
             textureName: isGameplay ? "game_bg" : "main_menu_bg",
             scrollSpeed: isGameplay ? 0.0 : 18.0,
@@ -80,7 +80,7 @@ final class BackgroundManager {
             container.addChild(staticArt)
         }
         
-        // 4. Ornament 1: Foam Parallax Layer
+        // 4. Ornament 1: Foam Parallax Layer (Configured to switch directions based on state)
         let activeScrollSpeed: CGFloat = isGameplay ? 45.0 : 8.0
         let activeFoamAsset = isGameplay ? "foam_ornament" : "menu_ornament_1"
         
@@ -103,8 +103,8 @@ final class BackgroundManager {
     
     private func createScrollingLayer(in scene: SKScene, with component: BackgroundComponent, addToContainer: Bool, overlapOverride: CGFloat) {
         // --- GAMEPLAY FOAM TWEAKABLES ---
-        let gameFoamHeightMultiplier: CGFloat = 0.20 // Lowering this (e.g., 0.3 to 0.20) makes it smaller
-        let gameFoamYOffset: CGFloat = 0.0         // Shifting this more negative pushes it lower down the screen
+        let gameFoamHeightMultiplier: CGFloat = 0.20
+        let gameFoamYOffset: CGFloat = 0.0
         // --------------------------------
         
         let texture = SKTexture(imageNamed: component.textureName)
@@ -118,7 +118,6 @@ final class BackgroundManager {
         
         // Check which asset type is loading to apply independent size & position logic
         if component.textureName == "foam_ornament" {
-            // Apply customized small size parameters for active gameplay loop context
             let targetHeight = scene.size.height * gameFoamHeightMultiplier
             let aspectRatio = textureSize.width / textureSize.height
             let targetWidth = targetHeight * aspectRatio
@@ -127,7 +126,6 @@ final class BackgroundManager {
             finalYOffset = gameFoamYOffset
             
         } else if component.textureName == "menu_ornament_1" {
-            // Apply original menu size configuration bounds comfortably
             let targetHeight = scene.size.height * foamHeightMultiplier
             let aspectRatio = textureSize.width / textureSize.height
             let targetWidth = targetHeight * aspectRatio
@@ -136,7 +134,6 @@ final class BackgroundManager {
             finalYOffset = foamYOffset
             
         } else {
-            // Scale background tiles to fill the screen bounds completely
             let scale = max(scene.size.width / textureSize.width, scene.size.height / textureSize.height)
             finalSize = CGSize(width: (textureSize.width * scale) + overlapOverride, height: textureSize.height * scale)
             finalYOffset = 0.0
@@ -148,18 +145,36 @@ final class BackgroundManager {
         let elapsed = CGFloat(ProcessInfo.processInfo.systemUptime)
         let totalOffset = component.scrollSpeed > 0 ? (elapsed * component.scrollSpeed).truncatingRemainder(dividingBy: scrollDistance) : 0.0
 
+        // Determine if this specific layer should scroll from Right-to-Left (e.g., gameplay foam)
+        let isRightToLeft = (component.textureName == "foam_ornament")
+
         for i in 0...2 {
             let node = SKSpriteNode(texture: texture, size: finalSize)
             node.anchorPoint = CGPoint(x: 0, y: 0)
             node.zPosition = component.zPosition
             
-            let startX = totalOffset - (CGFloat(i) * scrollDistance)
-            node.position = CGPoint(x: startX, y: finalYOffset)
-            
-            if component.scrollSpeed > 0 {
-                let move = SKAction.moveBy(x: scrollDistance, y: 0, duration: duration)
-                let reset = SKAction.moveBy(x: -scrollDistance, y: 0, duration: 0)
-                node.run(SKAction.repeatForever(SKAction.sequence([move, reset])))
+            // Apply alternative coordinate layouts based on direction needs
+            if isRightToLeft {
+                // Spawn sequential nodes to the right of the screen viewport
+                let startX = -totalOffset + (CGFloat(i) * scrollDistance)
+                node.position = CGPoint(x: startX, y: finalYOffset)
+                
+                if component.scrollSpeed > 0 {
+                    // Shift leftward by a negative factor, then instantly reset back to the right loop boundary
+                    let move = SKAction.moveBy(x: -scrollDistance, y: 0, duration: duration)
+                    let reset = SKAction.moveBy(x: scrollDistance, y: 0, duration: 0)
+                    node.run(SKAction.repeatForever(SKAction.sequence([move, reset])))
+                }
+            } else {
+                // Standard Left-to-Right scrolling math
+                let startX = totalOffset - (CGFloat(i) * scrollDistance)
+                node.position = CGPoint(x: startX, y: finalYOffset)
+                
+                if component.scrollSpeed > 0 {
+                    let move = SKAction.moveBy(x: scrollDistance, y: 0, duration: duration)
+                    let reset = SKAction.moveBy(x: -scrollDistance, y: 0, duration: 0)
+                    node.run(SKAction.repeatForever(SKAction.sequence([move, reset])))
+                }
             }
             
             if addToContainer {
@@ -218,12 +233,12 @@ final class BackgroundManager {
     }
     
     // MARK: - Pause Logic
-        func setPaused(_ paused: Bool) {
-            // Pauses the tiled background layers
-            for node in backgroundNodes {
-                node.isPaused = paused
-            }
-            // Pauses the foam/ornament animations
-            ornamentContainer?.isPaused = paused
+    func setPaused(_ paused: Bool) {
+        // Pauses the tiled background layers
+        for node in backgroundNodes {
+            node.isPaused = paused
         }
+        // Pauses the foam/ornament animations
+        ornamentContainer?.isPaused = paused
+    }
 }

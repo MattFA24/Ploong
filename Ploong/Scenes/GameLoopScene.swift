@@ -168,7 +168,7 @@ final class GameLoopScene: SKScene {
         addChild(scoreBg)
         
         // --- ROW 1: SCORE ---
-        let scoreTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let scoreTitle = SKLabelNode(fontNamed: GameConstants.fontName)
         scoreTitle.text = "Score"
         scoreTitle.fontSize = hudFontSize
         scoreTitle.fontColor = .black
@@ -178,7 +178,7 @@ final class GameLoopScene: SKScene {
         scoreTitle.zPosition = 90
         addChild(scoreTitle)
         
-        let scoreVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let scoreVal = SKLabelNode(fontNamed: GameConstants.fontName)
         scoreVal.fontSize = hudFontSize
         scoreVal.fontColor = .black
         scoreVal.horizontalAlignmentMode = .right
@@ -189,7 +189,7 @@ final class GameLoopScene: SKScene {
         self.scoreValueLabel = scoreVal
         
         // --- ROW 2: COIN ---
-        let coinTitle = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let coinTitle = SKLabelNode(fontNamed: GameConstants.fontName)
         coinTitle.text = "Coin"
         coinTitle.fontSize = hudFontSize
         coinTitle.fontColor = .black
@@ -199,7 +199,7 @@ final class GameLoopScene: SKScene {
         coinTitle.zPosition = 90
         addChild(coinTitle)
         
-        let coinVal = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let coinVal = SKLabelNode(fontNamed: GameConstants.fontName)
         coinVal.fontSize = hudFontSize
         coinVal.fontColor = .black
         coinVal.horizontalAlignmentMode = .right
@@ -536,7 +536,7 @@ final class GameLoopScene: SKScene {
         if let existing = countdownLabel {
             label = existing
         } else {
-            let newLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+            let newLabel = SKLabelNode(fontNamed: GameConstants.fontName)
             newLabel.name = NodeName.countdownLabel.rawValue
             newLabel.fontSize = 64
             newLabel.fontColor = .black

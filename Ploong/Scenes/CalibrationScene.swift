@@ -123,7 +123,7 @@ final class CalibrationScene: SKScene {
         addChild(bottomBg)
         bottomBackgroundNode = bottomBg
         
-        let instruction = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let instruction = SKLabelNode(fontNamed: GameConstants.fontName)
         instruction.text = instructionText
         instruction.numberOfLines = 2
         instruction.fontColor = .white
@@ -132,7 +132,7 @@ final class CalibrationScene: SKScene {
         addChild(instruction)
         instructionNode = instruction
 
-        let status = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let status = SKLabelNode(fontNamed: GameConstants.fontName)
         status.text = "No hand detected.\nPlease position your hand in the frame."
         status.numberOfLines = 2
         status.fontColor = .white
@@ -141,7 +141,7 @@ final class CalibrationScene: SKScene {
         addChild(status)
         statusNode = status
 
-        let countdown = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let countdown = SKLabelNode(fontNamed: GameConstants.fontName)
         countdown.fontColor = .white
         countdown.horizontalAlignmentMode = .center
         countdown.verticalAlignmentMode = .center
@@ -294,7 +294,7 @@ final class CalibrationScene: SKScene {
         let responsiveTextFontSize = bounds.width * 0.021
         let countdownFontSize = bounds.width * 0.10
         
-        let fontName = "AvenirNext-Bold"
+        let fontName = GameConstants.fontName
         instructionLabel?.font = NSFont(name: fontName, size: responsiveTextFontSize) ?? NSFont.boldSystemFont(ofSize: responsiveTextFontSize)
         statusLabel?.font = NSFont(name: fontName, size: responsiveTextFontSize) ?? NSFont.boldSystemFont(ofSize: responsiveTextFontSize)
         countdownLabel?.font = NSFont(name: fontName, size: countdownFontSize) ?? NSFont.boldSystemFont(ofSize: countdownFontSize)

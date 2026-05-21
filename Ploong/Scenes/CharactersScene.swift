@@ -97,7 +97,7 @@ final class CharactersScene: SKScene {
         coinImg.zPosition = 1
         coinBg.addChild(coinImg)
 
-        let coinLabel = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let coinLabel = SKLabelNode(fontNamed: GameConstants.fontName)
         coinLabel.text = "\(totalCoins)" // UPDATED HERE: Uses the variable instead of "67"
         coinLabel.fontSize = 28
         coinLabel.fontColor = .black
@@ -236,4 +236,3 @@ final class CharactersScene: SKScene {
         view.presentScene(scene)
     }
 }
-

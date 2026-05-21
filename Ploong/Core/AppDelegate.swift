@@ -7,6 +7,7 @@
 
 
 import Cocoa
+import CoreText
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -20,6 +21,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
     }
-    
-    
+
+    private func registerAppFonts() {
+        guard let fontURL = Bundle.main.url(forResource: "eas-vhs", withExtension: "ttf") else {
+            return
+        }
+
+        _ = CTFontManagerRegisterFontsForURL(fontURL as CFURL, .process, nil)
+    }
 }

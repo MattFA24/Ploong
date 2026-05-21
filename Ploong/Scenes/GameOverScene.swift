@@ -44,7 +44,7 @@ final class GameOverScene: SKScene {
         let buttonYOffset: CGFloat = -size.height * 0.28
         let buttonSpacingX: CGFloat = size.width * 0.22
         
-        let fontName = "AvenirNext-Bold"
+        let fontName = GameConstants.fontName
         let labelFontSize: CGFloat = 39.0
         
         // Horizontal separation constants (gaps from center point)
@@ -225,6 +225,10 @@ final class GameOverScene: SKScene {
 
     private func retryGame() {
         guard let view = view else { return }
+        
+        AudioManager.shared.stopGameBgm()
+        AudioManager.shared.stopSFX(named: "sfx_poop_splat")
+        
         let scene = GameLoopScene(size: size)
         scene.scaleMode = scaleMode
         view.presentScene(scene, transition: SKTransition.crossFade(withDuration: 0.2))
@@ -232,6 +236,11 @@ final class GameOverScene: SKScene {
 
     private func quitToMenu() {
         guard let view = view else { return }
+        
+        AudioManager.shared.stopGameBgm()
+        AudioManager.shared.playMenuBgm()
+        AudioManager.shared.stopSFX(named: "sfx_poop_splat")
+        
         AudioManager.shared.stopGameBgm()
         let scene = MenuScene(size: size)
         scene.scaleMode = scaleMode

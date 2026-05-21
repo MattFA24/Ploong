@@ -38,11 +38,12 @@ final class ShootingSystem {
                 var bulletOffset = PlayerEntity.Layout.bulletSpawnOffset
                 
                 let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
+                
                 switch equippedCharacter {
                 case "jevon":
                     bulletOffset.y -= 20
                 case "farrell":
-                    bulletOffset.y -= 15
+                    bulletOffset.y -= 5
                 default:
                     break
                 }
@@ -54,7 +55,6 @@ final class ShootingSystem {
                 onEntitySpawned?(bullet)
                 
                 let screenWidth: CGFloat = render.node.scene?.size.width ?? 900
-                
                 let travelDist = screenWidth - bulletOriginX - 30
                 let duration = Double(travelDist / GameConstants.bulletSpeed)
                 
@@ -71,17 +71,18 @@ final class ShootingSystem {
         let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
         var customYOffset: CGFloat = 0
         
+
         switch equippedCharacter {
-        case "jevon": customYOffset = 30
-        case "farrell": customYOffset = 25
+        case "jevon": customYOffset = 13
+        case "farrell": customYOffset = 5
         default: customYOffset = 0
         }
         
         let idealBottomY = GameConstants.bottomLaneY + GameConstants.bottomPlayerFootOffset + customYOffset
         let idealTopY = GameConstants.topLaneY + GameConstants.topPlayerFootOffset + customYOffset
 
-        let laneTolerance: CGFloat = 5.0
 
+        let laneTolerance: CGFloat = 5.0
 
         if abs(playerY - idealBottomY) <= laneTolerance {
             return GameConstants.bottomLaneY

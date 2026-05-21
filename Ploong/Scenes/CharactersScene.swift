@@ -11,7 +11,7 @@ final class CharactersScene: SKScene {
     private var didSetupLayout = false
 
     private var characterNodes: [SKSpriteNode] = []
-    private var characterLabels: [SKSpriteNode] = []
+    private var characterLabels: [SKLabelNode] = [] // CHANGED: Native labels array configuration
     private var selectButton: SKSpriteNode?
     private var indicator: SKSpriteNode?
     private weak var coinLabel: SKLabelNode?
@@ -38,8 +38,8 @@ final class CharactersScene: SKScene {
     private let highlightScaleMult: CGFloat  = 1.35
     private let indicatorFixedY: CGFloat     = 180.0
     
-    // UNIFORM HEIGHT CONTEXT: This locks all labels (unlocked and ???) to one absolute pixel height
-    private let labelTargetHeight: CGFloat   = 24.0
+    // UNIFORM HEIGHT CONTEXT: This sets the exact baseline font point size for your text lines
+    private let labelTargetHeight: CGFloat   = 28.0
     // ─────────────────────────────────────────────────────────────────────────
 
     private let characterSizes: [String: CharacterSizeConfig] = [
@@ -116,17 +116,17 @@ final class CharactersScene: SKScene {
         let coinImgTex = SKTexture(imageNamed: "coin_img")
         coinImgTex.filteringMode = .nearest
         let coinImg = SKSpriteNode(texture: coinImgTex)
-        coinImg.position  = CGPoint(x: -35, y: 0)
+        coinImg.position  = CGPoint(x: -35, y: 5)
         coinImg.zPosition = 1
         coinBg.addChild(coinImg)
 
-        let lbl = SKLabelNode(fontNamed: "fontNamed: GameConstants.fontName")
+        let lbl = SKLabelNode(fontNamed: GameConstants.fontName)
         lbl.text                = "\(UserDefaults.standard.integer(forKey: "TotalCoins"))"
-        lbl.fontSize            = 28
+        lbl.fontSize            = 32
         lbl.fontColor           = .black
         lbl.horizontalAlignmentMode = .left
         lbl.verticalAlignmentMode   = .center
-        lbl.position            = CGPoint(x: -10, y: 0)
+        lbl.position            = CGPoint(x: -10, y: 5)
         lbl.zPosition           = 1
         coinBg.addChild(lbl)
         coinLabel = lbl
@@ -136,8 +136,8 @@ final class CharactersScene: SKScene {
         for i in 0..<charCount {
             let charName  = charNames[i]
             let isOwned   = CharacterManager.shared.getOwnedCharacters().contains(charName)
-            let assetName = isOwned ? "\(charName.lowercased())_char" : "unknown_\(charName.lowercased())"
 
+            let assetName = isOwned ? "\(charName.lowercased())_char" : "unknown_\(charName.lowercased())"
             let tex = SKTexture(imageNamed: assetName)
             tex.filteringMode = .nearest
 
@@ -155,24 +155,20 @@ final class CharactersScene: SKScene {
             modal.addChild(char)
             characterNodes.append(char)
 
-            let lblAsset = isOwned ? "\(charName.lowercased())_text" : "unknown_text"
-            let lTex = SKTexture(imageNamed: lblAsset)
-            lTex.filteringMode = .nearest
-            let labelSprite = SKSpriteNode(texture: lTex)
-            labelSprite.anchorPoint = CGPoint(x: 0.5, y: 1.0)
+            // CHANGED: Initialized as native SKLabelNode using centralized GameConstants configuration font
+            let labelNode = SKLabelNode(fontNamed: GameConstants.fontName)
+            labelNode.text = isOwned ? charName : "???"
+            labelNode.fontSize = labelTargetHeight
+            labelNode.fontColor = .black
+            labelNode.horizontalAlignmentMode = .center
+            labelNode.verticalAlignmentMode = .top
             
             let feetY = (charY + config.charYOffset) - (char.size.height * 0.5)
-            labelSprite.position  = CGPoint(x: char.position.x, y: feetY + config.labelYOffset)
-            labelSprite.zPosition = 3
+            labelNode.position  = CGPoint(x: char.position.x, y: feetY + config.labelYOffset)
+            labelNode.zPosition = 3
             
-            // Set explicit structural width/height size boundaries cleanly from the start
-            if lTex.size().height > 0 {
-                let labelAspect = lTex.size().width / lTex.size().height
-                labelSprite.size = CGSize(width: labelTargetHeight * labelAspect, height: labelTargetHeight)
-            }
-            
-            modal.addChild(labelSprite)
-            characterLabels.append(labelSprite)
+            modal.addChild(labelNode)
+            characterLabels.append(labelNode)
         }
 
         // Indicator
@@ -250,14 +246,19 @@ final class CharactersScene: SKScene {
             let tex       = SKTexture(imageNamed: assetName)
             tex.filteringMode = .nearest
             node.texture      = tex
-
-            let lblTex = SKTexture(imageNamed: isOwned ? "\(charName.lowercased())_text" : "unknown_text")
-            lblTex.filteringMode = .nearest
             
             let label = characterLabels[index]
-            label.texture = lblTex
+            // CHANGED: Update label string value context seamlessly in real-time
+            label.text = isOwned ? charName : "???"
             
             let config = characterSizes[charName] ?? CharacterSizeConfig(maxCharWidth: 130.0, maxCharHeight: 130.0, charYOffset: 0.0, labelYOffset: -25.0)
+
+            // CHANGED: Modulate point fontSize parameters smoothly to indicate focus selections cleanly
+            let targetFontSize = isHighlighted ? (labelTargetHeight * highlightScaleMult) : labelTargetHeight
+            label.removeAllActions()
+            label.run(SKAction.run { [weak label] in
+                label?.fontSize = targetFontSize
+            })
 
             // Scale calculations for character sprites
             let baseCharScale = min(config.maxCharWidth / tex.size().width, config.maxCharHeight / tex.size().height)
@@ -266,15 +267,6 @@ final class CharactersScene: SKScene {
             node.removeAllActions()
             node.run(SKAction.scale(to: targetCharScale, duration: 0.1))
             node.zPosition = isHighlighted ? 8 : 3
-
-            // FIX: Swap out the erratic .scale action with a concrete absolute sizing configuration.
-            // This bypasses intermediate texture load lag entirely so the text remains perfectly readable on transaction frames.
-            let activeTextureHeight = lblTex.size().height > 0 ? lblTex.size().height : labelTargetHeight
-            let labelAspect = lblTex.size().width / activeTextureHeight
-            let activeTargetHeight = isHighlighted ? (labelTargetHeight * 1.15) : labelTargetHeight
-            
-            label.removeAllActions()
-            label.run(SKAction.resize(toWidth: activeTargetHeight * labelAspect, height: activeTargetHeight, duration: 0.1))
 
             // Dynamic feet tracking formula matches label adjustments along sprite expansions perfectly
             let currentRenderedHeight = tex.size().height * targetCharScale
@@ -378,7 +370,7 @@ final class CharactersScene: SKScene {
         if CharacterManager.shared.purchaseCharacter(name: charName, currentCoins: UserDefaults.standard.integer(forKey: "TotalCoins")) {
             coinLabel?.text = "\(UserDefaults.standard.integer(forKey: "TotalCoins"))"
             purchaseModal?.isHidden = true
-            refreshSelectionUI() // Fires cleanly now without internal async delays
+            refreshSelectionUI()
         } else {
             purchaseModal?.childNode(withName: "modalBg")?.run(SKAction.sequence([
                 SKAction.moveBy(x:  10, y: 0, duration: 0.05),

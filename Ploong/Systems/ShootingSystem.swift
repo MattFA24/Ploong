@@ -35,7 +35,19 @@ final class ShootingSystem {
 
                 timeSinceLastShot = 0
                 
-                let bulletOffset = PlayerEntity.Layout.bulletSpawnOffset
+                var bulletOffset = PlayerEntity.Layout.bulletSpawnOffset
+                
+                let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
+                
+                switch equippedCharacter {
+                case "jevon":
+                    bulletOffset.y -= 20
+                case "farrell":
+                    bulletOffset.y -= 5
+                default:
+                    break
+                }
+                
                 let bulletOriginX = render.node.position.x + bulletOffset.x
                 let bulletPos = CGPoint(x: bulletOriginX, y: render.node.position.y + bulletOffset.y)
                 let bullet = BulletEntity(position: bulletPos, damage: component.power)
@@ -43,11 +55,6 @@ final class ShootingSystem {
                 onEntitySpawned?(bullet)
                 
                 let screenWidth: CGFloat = render.node.scene?.size.width ?? 900
-                
-                // BUG 1 FIX: Only travel to the right edge of the screen.
-                // Original GameScene: travelDist = size.width - bullet.position.x - 30
-                // Your version was adding 1200 extra pixels, sending bullets into
-                // off-screen territory where poops are still arriving — causing phantom hits.
                 let travelDist = screenWidth - bulletOriginX - 30
                 let duration = Double(travelDist / GameConstants.bulletSpeed)
                 
@@ -59,14 +66,29 @@ final class ShootingSystem {
         }
     }
 
-    private func currentLaneY(for playerY: CGFloat) -> CGFloat? {
-        let laneTolerance: CGFloat = 50.0
 
-        if abs(playerY - GameConstants.bottomLaneY) <= laneTolerance {
+    private func currentLaneY(for playerY: CGFloat) -> CGFloat? {
+        let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
+        var customYOffset: CGFloat = 0
+        
+
+        switch equippedCharacter {
+        case "jevon": customYOffset = 13
+        case "farrell": customYOffset = 5
+        default: customYOffset = 0
+        }
+        
+        let idealBottomY = GameConstants.bottomLaneY + GameConstants.bottomPlayerFootOffset + customYOffset
+        let idealTopY = GameConstants.topLaneY + GameConstants.topPlayerFootOffset + customYOffset
+
+
+        let laneTolerance: CGFloat = 5.0
+
+        if abs(playerY - idealBottomY) <= laneTolerance {
             return GameConstants.bottomLaneY
         }
 
-        if abs(playerY - GameConstants.topLaneY) <= laneTolerance {
+        if abs(playerY - idealTopY) <= laneTolerance {
             return GameConstants.topLaneY
         }
 

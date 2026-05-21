@@ -372,8 +372,8 @@ final class GameLoopScene: SKScene {
             footOffset = GameConstants.bottomPlayerFootOffset
         }
         
-        
-        let targetY = laneY + footOffset
+
+        let targetY = laneY + footOffset + player.customYOffset
         
         if abs(renderNode.position.y - targetY) > 1 {
             AudioManager.shared.playSFX(named: "sfx_gesture_jump")

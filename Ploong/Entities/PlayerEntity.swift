@@ -9,6 +9,8 @@ import SpriteKit
 import GameplayKit
 
 final class PlayerEntity: GameEntity {
+    let customYOffset: CGFloat
+
     enum Layout {
         static let hitboxSize = CGSize(width: 50, height: 70)
         static let sourceTextureSize = CGSize(width: 288, height: 225)
@@ -29,27 +31,37 @@ final class PlayerEntity: GameEntity {
             y: -visualSize.height * 0.01 + 5
         )
     }
+    
     init(position: CGPoint) {
+        let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
+        
+
+        switch equippedCharacter {
+        case "jevon":
+            self.customYOffset = 13
+        case "farrell":
+            self.customYOffset = 5
+        default:
+            self.customYOffset = 0
+        }
+        
         super.init()
         
-        // Fetch equipped character dynamically
-        let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
         let defaultTextureName = "\(equippedCharacter)_1"
         
-        // 1. Setup Render Node using the dynamic texture
+        let adjustedPosition = CGPoint(x: position.x, y: position.y + self.customYOffset)
+        
         let render = RenderComponent(textureName: defaultTextureName, size: Layout.visualSize)
-        render.node.position = position
+        render.node.position = adjustedPosition 
         render.node.zPosition = 10
         render.node.texture?.filteringMode = .nearest
         
-        // Apply the dynamic animation from the new CharacterAnimation struct
         let idleAction = CharacterAnimation.getAnimation(for: equippedCharacter)
         render.node.run(idleAction, withKey: "playerIdleAnimation")
         render.node.entity = self
 
         addPowerLabel(to: render.node)
         
-        // 2. Setup Physics Body
         let pb = SKPhysicsBody(rectangleOf: Layout.hitboxSize, center: Layout.hitboxCenter)
         pb.isDynamic = true
         pb.categoryBitMask = PhysicsCategory.player
@@ -59,13 +71,13 @@ final class PlayerEntity: GameEntity {
         
         addComponent(render)
         
-        // 3. Add Game Logic Components
         addComponent(InputComponent(speed: 420))
         addComponent(StatsComponent(initialPower: 10))
         addComponent(PhysicsComponent())
     }
     
     required init?(coder: NSCoder) {
+        self.customYOffset = 0
         super.init(coder: coder)
     }
 

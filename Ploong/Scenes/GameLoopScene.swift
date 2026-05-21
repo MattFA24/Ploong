@@ -426,19 +426,19 @@ final class GameLoopScene: SKScene {
     }
     
     func enterPlaying() {
-        physicsWorld.speed = 1
-        hidePauseOverlay()
-    }
-    
-    func enterPaused() {
-        physicsWorld.speed = 0
-        showPauseOverlay(showModal: true)
-    }
-    
-    func enterCountdown() {
-        physicsWorld.speed = 0
-        startCountdown()
-    }
+            setGameElementsPaused(false) // Unfreeze everything
+            hidePauseOverlay()
+        }
+        
+        func enterPaused() {
+            setGameElementsPaused(true) // Freeze everything
+            showPauseOverlay(showModal: true)
+        }
+        
+        func enterCountdown() {
+            setGameElementsPaused(true) // Keep everything frozen while counting down
+            startCountdown()
+        }
     
     // MARK: - Pause UI
     private func buildPauseOverlay() {
@@ -636,4 +636,20 @@ final class GameLoopScene: SKScene {
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
+    // MARK: - Pause Freeze Control
+        private func setGameElementsPaused(_ paused: Bool) {
+            // 1. Pause/Resume Physics
+            physicsWorld.speed = paused ? 0 : 1
+            
+            // 2. Pause/Resume Background and Ornaments
+            BackgroundManager.shared.setPaused(paused)
+            
+            // 3. Pause/Resume all spawned entities (enemies, coins, gates, player, bullets)
+            // This halts all running SKActions (like SpawnerSystem's scrollOff)
+            for entity in entities {
+                if let renderNode = entity.component(ofType: RenderComponent.self)?.node {
+                    renderNode.isPaused = paused
+                }
+            }
+        }
 }

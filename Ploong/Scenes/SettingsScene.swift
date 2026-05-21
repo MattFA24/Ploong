@@ -12,6 +12,7 @@ final class SettingsScene: SKScene {
     private var sliders: [SliderNode] = []
     private weak var activeSlider: SliderNode?
     private var previewBackgroundNodes: [SKSpriteNode] = []
+    private let previewSafeZoneTileScale: CGFloat = 0.5
 
     private enum PreviewLayout {
         static let virtualSize = CGSize(width: 960, height: 600)
@@ -177,14 +178,7 @@ final class SettingsScene: SKScene {
         root.addChild(background)
         previewBackgroundNodes.append(background)
 
-        addPreviewSprite(
-            "safe_zone_dark",
-            to: root,
-            position: CGPoint(x: 40, y: 1),
-            size: CGSize(width: 88, height: virtualSize.height + 40),
-            zPosition: -8,
-            anchorPoint: CGPoint(x: 0, y: 0)
-        )
+        addPreviewSafeZone(to: root, height: virtualSize.height)
         addPreviewSprite(
             "tiles_main",
             to: root,
@@ -206,6 +200,25 @@ final class SettingsScene: SKScene {
             size: CGSize(width: virtualSize.width, height: PreviewLayout.foamHeight),
             zPosition: 8
         )
+    }
+
+    private func addPreviewSafeZone(to root: SKNode, height: CGFloat) {
+        let texture = SKTexture(imageNamed: "safe_zone_dark")
+        texture.filteringMode = .nearest
+
+        let tileSize = texture.size()
+        guard tileSize.width > 0, tileSize.height > 0 else { return }
+
+        let scaledTileHeight = tileSize.height * previewSafeZoneTileScale
+        let tileCount = Int(ceil(height / scaledTileHeight)) + 1
+        for index in 0..<tileCount {
+            let tile = SKSpriteNode(texture: texture)
+            tile.anchorPoint = CGPoint(x: 0, y: 0)
+            tile.setScale(previewSafeZoneTileScale)
+            tile.position = CGPoint(x: 0, y: CGFloat(index) * scaledTileHeight)
+            tile.zPosition = -8
+            root.addChild(tile)
+        }
     }
 
     private func addPreviewWorld(to root: SKNode, virtualSize: CGSize) {
@@ -255,10 +268,10 @@ final class SettingsScene: SKScene {
             size: CGSize(width: 186, height: 66),
             zPosition: 85
         )
-        addPreviewLabel("Score", to: root, position: CGPoint(x: 38, y: virtualSize.height - 46), fontSize: 24, color: .black, zPosition: 90, alignment: .left)
-        addPreviewLabel("106", to: root, position: CGPoint(x: 184, y: virtualSize.height - 46), fontSize: 24, color: .black, zPosition: 90, alignment: .right)
-        addPreviewLabel("Coin", to: root, position: CGPoint(x: 38, y: virtualSize.height - 75), fontSize: 24, color: .black, zPosition: 90, alignment: .left)
-        addPreviewLabel("0", to: root, position: CGPoint(x: 184, y: virtualSize.height - 75), fontSize: 24, color: .black, zPosition: 90, alignment: .right)
+        addPreviewLabel("Score", to: root, position: CGPoint(x: 38, y: virtualSize.height - 46), fontSize: 20, color: .black, zPosition: 90, alignment: .left)
+        addPreviewLabel("106", to: root, position: CGPoint(x: 184, y: virtualSize.height - 46), fontSize: 20, color: .black, zPosition: 90, alignment: .right)
+        addPreviewLabel("Coin", to: root, position: CGPoint(x: 38, y: virtualSize.height - 75), fontSize: 20, color: .black, zPosition: 90, alignment: .left)
+        addPreviewLabel("0", to: root, position: CGPoint(x: 184, y: virtualSize.height - 75), fontSize: 20, color: .black, zPosition: 90, alignment: .right)
 
         addPreviewSprite(
             "pause_hint_bg",

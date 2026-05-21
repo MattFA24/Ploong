@@ -7,6 +7,9 @@ final class AudioManager {
     private var menuPlayer: AVAudioPlayer?
     private var gamePlayer: AVAudioPlayer?
     private var sfxPlayers: [AVAudioPlayer] = []
+    private let boostedSFXLayerCounts = [
+        "sfx_poop_splat": 1
+    ]
 
     // MARK: - Volume Properties
     
@@ -88,14 +91,18 @@ final class AudioManager {
         sfxPlayers.removeAll { !$0.isPlaying }
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "mp3") else { return }
 
-        do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.volume = sfxVolume
-            player.prepareToPlay()
-            player.play()
-            sfxPlayers.append(player)
-        } catch {
-            return
+        let layerCount = boostedSFXLayerCounts[resourceName] ?? 1
+
+        for _ in 0..<layerCount {
+            do {
+                let player = try AVAudioPlayer(contentsOf: url)
+                player.volume = sfxVolume
+                player.prepareToPlay()
+                player.play()
+                sfxPlayers.append(player)
+            } catch {
+                continue
+            }
         }
     }
     

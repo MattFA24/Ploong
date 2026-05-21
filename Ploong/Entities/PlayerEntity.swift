@@ -63,7 +63,7 @@ final class PlayerEntity: GameEntity {
     }
 
     private func addPowerLabel(to node: SKNode) {
-        let powerLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let powerLbl = SKLabelNode(fontNamed: GameConstants.fontName)
         powerLbl.name = "powerText"
         powerLbl.text = "10"
         powerLbl.fontSize = 18

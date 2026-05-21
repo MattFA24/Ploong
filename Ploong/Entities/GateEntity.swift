@@ -38,7 +38,7 @@ final class GateEntity: GameEntity {
         render.node.entity = self
         
         // 4. Mathematics text layout
-        let lbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let lbl = SKLabelNode(fontNamed: GameConstants.fontName)
         lbl.text = "\(gateData.text)\(Int(gateData.value))"
         lbl.fontSize = 26
         lbl.fontColor = .white

@@ -49,7 +49,7 @@ final class MenuScene: SKScene {
         scaleSprite(title, maxWidth: size.width * 0.75, maxHeight: size.height * 0.28)
         addChild(title)
 
-        let highscore = SKLabelNode(fontNamed: "AvenirNext-Medium")
+        let highscore = SKLabelNode(fontNamed: GameConstants.fontName)
         let savedHighScore = UserDefaults.standard.integer(forKey: "HighScore")
         highscore.text = "HIGHSCORE: \(savedHighScore)"
         highscore.fontSize = 26

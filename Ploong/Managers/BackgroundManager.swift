@@ -216,4 +216,14 @@ final class BackgroundManager {
         // Terapkan langsung secara real-time
         applyBrightness(clampedValue)
     }
+    
+    // MARK: - Pause Logic
+        func setPaused(_ paused: Bool) {
+            // Pauses the tiled background layers
+            for node in backgroundNodes {
+                node.isPaused = paused
+            }
+            // Pauses the foam/ornament animations
+            ornamentContainer?.isPaused = paused
+        }
 }

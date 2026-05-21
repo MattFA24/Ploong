@@ -32,12 +32,19 @@ final class PlayerEntity: GameEntity {
     init(position: CGPoint) {
         super.init()
         
-        // 1. Setup Render Node
-        let render = RenderComponent(textureName: "joy_1", size: Layout.visualSize)
+        // Fetch equipped character dynamically
+        let equippedCharacter = CharacterManager.shared.getEquippedCharacter().lowercased()
+        let defaultTextureName = "\(equippedCharacter)_1"
+        
+        // 1. Setup Render Node using the dynamic texture
+        let render = RenderComponent(textureName: defaultTextureName, size: Layout.visualSize)
         render.node.position = position
         render.node.zPosition = 10
         render.node.texture?.filteringMode = .nearest
-        render.node.run(JoyAnimation.idleAction(), withKey: "joyIdleAnimation")
+        
+        // Apply the dynamic animation from the new CharacterAnimation struct
+        let idleAction = CharacterAnimation.getAnimation(for: equippedCharacter)
+        render.node.run(idleAction, withKey: "playerIdleAnimation")
         render.node.entity = self
 
         addPowerLabel(to: render.node)
@@ -63,7 +70,7 @@ final class PlayerEntity: GameEntity {
     }
 
     private func addPowerLabel(to node: SKNode) {
-        let powerLbl = SKLabelNode(fontNamed: "AvenirNext-Bold")
+        let powerLbl = SKLabelNode(fontNamed: GameConstants.fontName)
         powerLbl.name = "powerText"
         powerLbl.text = "10"
         powerLbl.fontSize = 18

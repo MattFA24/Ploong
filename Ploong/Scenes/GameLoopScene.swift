@@ -47,7 +47,24 @@ final class GameLoopScene: SKScene {
     
     private var player: PlayerEntity!
     private var lastUpdateTime: TimeInterval = 0
-    
+
+    // MARK: - Warning Overlay
+
+    /// Set to true (via WarningScene) to show the overlay before gameplay begins.
+    private var showWarningOverlay: Bool
+
+    // Designated initialiser — called by WarningScene with showWarningOverlay: true.
+    // Falls back to false so every other call site (retryGame, etc.) needs no change.
+    init(size: CGSize, showWarningOverlay: Bool = false) {
+        self.showWarningOverlay = showWarningOverlay
+        super.init(size: size)
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        self.showWarningOverlay = false
+        super.init(coder: aDecoder)
+    }
+
     override func sceneDidLoad() {
         super.sceneDidLoad()
         backgroundColor = .white
@@ -93,6 +110,13 @@ final class GameLoopScene: SKScene {
         BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
         buildGameHUD()
         stateMachine.enter(PlayingState.self)
+
+        // Show warning overlay on top of the fully-built scene.
+        // Everything is paused until the overlay fades out.
+        if showWarningOverlay {
+            setGameElementsPaused(true)
+            addWarningOverlay()
+        }
     }
     
     override func didMove(to view: SKView) {
@@ -426,19 +450,19 @@ final class GameLoopScene: SKScene {
     }
     
     func enterPlaying() {
-            setGameElementsPaused(false) // Unfreeze everything
-            hidePauseOverlay()
-        }
-        
-        func enterPaused() {
-            setGameElementsPaused(true) // Freeze everything
-            showPauseOverlay(showModal: true)
-        }
-        
-        func enterCountdown() {
-            setGameElementsPaused(true) // Keep everything frozen while counting down
-            startCountdown()
-        }
+        setGameElementsPaused(false)
+        hidePauseOverlay()
+    }
+    
+    func enterPaused() {
+        setGameElementsPaused(true)
+        showPauseOverlay(showModal: true)
+    }
+    
+    func enterCountdown() {
+        setGameElementsPaused(true)
+        startCountdown()
+    }
     
     // MARK: - Pause UI
     private func buildPauseOverlay() {
@@ -597,10 +621,7 @@ final class GameLoopScene: SKScene {
     private func retryGame() {
         checkAndSaveHighScore()
         
-        // Stop sfx_poop_splat before transitioning
         AudioManager.shared.stopSFX(named: "sfx_poop_splat")
-        
-        // 🌟 PERBAIKAN: Gunakan AudioManager.shared untuk mengakses fungsi fade
         AudioManager.shared.fadeGameBgm(duration: 0.3)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
@@ -619,10 +640,7 @@ final class GameLoopScene: SKScene {
     private func quitToMenu() {
         checkAndSaveHighScore()
         
-        // Stop sfx_poop_splat before transitioning
         AudioManager.shared.stopSFX(named: "sfx_poop_splat")
-        
-        // 🌟 PERBAIKAN: Gunakan AudioManager.shared
         AudioManager.shared.fadeGameBgm(duration: 0.3)
         
         guard let view = view else { return }
@@ -636,20 +654,29 @@ final class GameLoopScene: SKScene {
         scene.scaleMode = scaleMode
         view.presentScene(scene)
     }
+
     // MARK: - Pause Freeze Control
-        private func setGameElementsPaused(_ paused: Bool) {
-            // 1. Pause/Resume Physics
-            physicsWorld.speed = paused ? 0 : 1
-            
-            // 2. Pause/Resume Background and Ornaments
-            BackgroundManager.shared.setPaused(paused)
-            
-            // 3. Pause/Resume all spawned entities (enemies, coins, gates, player, bullets)
-            // This halts all running SKActions (like SpawnerSystem's scrollOff)
-            for entity in entities {
-                if let renderNode = entity.component(ofType: RenderComponent.self)?.node {
-                    renderNode.isPaused = paused
-                }
+    private func setGameElementsPaused(_ paused: Bool) {
+        // 1. Pause/Resume Physics
+        physicsWorld.speed = paused ? 0 : 1
+        
+        // 2. Pause/Resume Background and Ornaments
+        BackgroundManager.shared.setPaused(paused)
+        
+        // 3. Pause/Resume all spawned entities (enemies, coins, gates, player, bullets)
+        for entity in entities {
+            if let renderNode = entity.component(ofType: RenderComponent.self)?.node {
+                renderNode.isPaused = paused
             }
         }
+    }
+
+    // MARK: - Warning Overlay
+    private func addWarningOverlay() {
+        let overlay = WarningOverlayNode(size: size)
+        overlay.onDismiss = { [weak self] in
+            self?.setGameElementsPaused(false)
+        }
+        addChild(overlay)
+    }
 }

@@ -51,7 +51,7 @@ final class BackgroundManager {
         
         let isGameplay = scene is GameLoopScene
         
-        // 1. Primary Tiled Background (Scrolls Left-to-Right in Main Menu)
+        // 1. Primary Tiled Background
         let tileComp = BackgroundComponent(
             textureName: isGameplay ? "game_bg" : "main_menu_bg",
             scrollSpeed: isGameplay ? 0.0 : 18.0,
@@ -59,14 +59,14 @@ final class BackgroundManager {
         )
         createScrollingLayer(in: scene, with: tileComp, addToContainer: false, overlapOverride: backgroundOverlap)
         
-        // 2. Create the Ornament Container for "Pop" animations
+        // 2. Create the Ornament Container
         let container = SKNode()
         container.name = "ornamentContainer"
         container.zPosition = isGameplay ? 15 : -5
         scene.addChild(container)
         self.ornamentContainer = container
         
-        // 3. Ornament 2: Characters/Hose (Only built on the Main Menu scene)
+        // 3. Ornament 2
         if !isGameplay {
             let staticTexture = SKTexture(imageNamed: "menu_ornament_2")
             staticTexture.filteringMode = .nearest
@@ -80,7 +80,7 @@ final class BackgroundManager {
             container.addChild(staticArt)
         }
         
-        // 4. Ornament 1: Foam Parallax Layer (Configured to switch directions based on state)
+        // 4. Ornament 1
         let activeScrollSpeed: CGFloat = isGameplay ? 45.0 : 8.0
         let activeFoamAsset = isGameplay ? "foam_ornament" : "menu_ornament_1"
         
@@ -90,7 +90,6 @@ final class BackgroundManager {
             zPosition: 5
         )
         
-        // 🌟 Terapkan setting kecerahan yang tersimpan saat scene dimuat
         createScrollingLayer(
             in: scene,
             with: foamComp,
@@ -98,7 +97,13 @@ final class BackgroundManager {
             overlapOverride: foamOverlap
         )
         
-        applyBrightness(loadBrightness())
+        // 🌟 PERBAIKAN: Hanya terapkan brightness jika sedang di dalam GameLoopScene
+        if isGameplay {
+            applyBrightness(loadBrightness())
+        } else {
+            // Memastikan jika kembali ke menu, kecerahan kembali normal (100%)
+            applyBrightness(1.0)
+        }
     }
     
     private func createScrollingLayer(in scene: SKScene, with component: BackgroundComponent, addToContainer: Bool, overlapOverride: CGFloat) {
@@ -224,12 +229,13 @@ final class BackgroundManager {
         return CGFloat(UserDefaults.standard.float(forKey: "backgroundBrightness"))
     }
     
-    func saveBrightness(_ value: CGFloat) {
+    func saveBrightness(_ value: CGFloat, applyToCurrentBackground: Bool = true) {
         let clampedValue = max(0.0, min(1.0, value))
         UserDefaults.standard.set(clampedValue, forKey: "backgroundBrightness")
         
-        // Terapkan langsung secara real-time
-        applyBrightness(clampedValue)
+        if applyToCurrentBackground {
+            applyBrightness(clampedValue)
+        }
     }
     
     // MARK: - Pause Logic

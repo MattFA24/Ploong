@@ -31,7 +31,8 @@ final class MenuScene: SKScene {
         }
         
         // Ensure ornaments pop UP when entering the menu
-        BackgroundManager.shared.setOrnamentsVisible(true)
+        BackgroundManager.shared.setupBackground(in: self)        
+        BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
     }
 
     private func buildLayout() {

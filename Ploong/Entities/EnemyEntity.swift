@@ -38,8 +38,8 @@ final class EnemyEntity: GameEntity {
             let hpLbl = SKLabelNode(fontNamed: GameConstants.fontName)
             hpLbl.name = "hpText"
             hpLbl.text = hpText
-            hpLbl.fontSize = 13
-            hpLbl.fontColor = .white
+            hpLbl.fontSize = 20
+            hpLbl.fontColor = .red
             hpLbl.zPosition = 1
             hpLbl.position = CGPoint(x: 0, y: enemySize.height + 15)
             render.node.addChild(hpLbl)

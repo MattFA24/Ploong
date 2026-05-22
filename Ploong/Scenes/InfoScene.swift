@@ -131,6 +131,7 @@ final class InfoScene: SKScene {
         
         // MARK: - Label Generator
         
+        // MARK: - Label Generator
         for col in columns {
             var currentY = startY
             
@@ -139,16 +140,16 @@ final class InfoScene: SKScene {
                 label.text = line.0
                 label.fontSize = line.1
                 
-                // 🌟 KUNCI UTAMA 1: Aktifkan fitur multi-baris otomatis sesuai batas lebar kolom
-                label.numberOfLines = 0
-                label.preferredMaxLayoutWidth = col.width
-                
-                if line.1 >= 15 {
-                    label.fontColor = .black
+                // 🌟 PERUBAHAN: Beri nama khusus jika ini adalah link
+                if line.1 < 15 {
+                    label.name = "url_\(line.0)" // Contoh: "url_https://..."
+                    label.fontColor = SKColor(red: 0.2, green: 0.4, blue: 0.8, alpha: 1) // Warna biru link
                 } else {
-                    label.fontColor = SKColor(red: 0.32, green: 0.42, blue: 0.45, alpha: 1)
+                    label.fontColor = .black
                 }
                 
+                label.numberOfLines = 0
+                label.preferredMaxLayoutWidth = col.width
                 label.horizontalAlignmentMode = .left
                 label.verticalAlignmentMode = .top
                 label.position = CGPoint(x: col.x, y: currentY)
@@ -156,9 +157,6 @@ final class InfoScene: SKScene {
                 
                 modal.addChild(label)
                 
-                // 🌟 KUNCI UTAMA 2: Deteksi tabrakan teks dinamis.
-                // Jika teks terpotong menjadi 2-3 baris, jarak Y otomatis bertambah lebar
-                // agar tidak menabrak baris teks di bawahnya.
                 let dynamicSpacing = max(line.3, label.frame.height + 6)
                 currentY -= dynamicSpacing
             }
@@ -166,14 +164,24 @@ final class InfoScene: SKScene {
     }
     
     // MARK: - Input Handling
-    
+
     override func mouseDown(with event: NSEvent) {
         let location = event.location(in: self)
         let touchedNodes = nodes(at: location)
         
+        // 1. Deteksi Tombol Close
         if touchedNodes.contains(where: { $0.name == "closeButton" }) {
             presentMenu()
             return
+        }
+        
+        // 2. 🌟 Deteksi Klik pada Link
+        if let linkNode = touchedNodes.first(where: { $0.name?.hasPrefix("url_") == true }) {
+            if let urlString = linkNode.name?.replacingOccurrences(of: "url_", with: ""),
+               let url = URL(string: urlString) {
+                // Membuka link di browser default (Safari/Chrome)
+                NSWorkspace.shared.open(url)
+            }
         }
     }
     

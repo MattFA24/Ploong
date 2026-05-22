@@ -122,6 +122,9 @@ final class GameLoopScene: SKScene {
     override func didMove(to view: SKView) {
         super.didMove(to: view)
         setupGestureControl()
+        BackgroundManager.shared.setupBackground(in: self)
+        BackgroundManager.shared.setOrnamentsVisible(true, animated: false)
+
     }
     
     override func update(_ currentTime: TimeInterval) {

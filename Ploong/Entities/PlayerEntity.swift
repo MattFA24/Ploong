@@ -85,7 +85,7 @@ final class PlayerEntity: GameEntity {
         let powerLbl = SKLabelNode(fontNamed: GameConstants.fontName)
         powerLbl.name = "powerText"
         powerLbl.text = "10"
-        powerLbl.fontSize = 18
+        powerLbl.fontSize = 25
         powerLbl.fontColor = .red
         powerLbl.zPosition = 2
         powerLbl.position = CGPoint(x: +Layout.visualSize.width * 0.3, y: Layout.visualHalfHeight + 15)

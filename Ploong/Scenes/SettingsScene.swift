@@ -104,7 +104,7 @@ final class SettingsScene: SKScene {
 
             let configs: [(String, CGFloat, (CGFloat) -> Void)] = [
                 ("bgbrightness_text", BackgroundManager.shared.loadBrightness(), { [weak self] val in
-                    BackgroundManager.shared.saveBrightness(val)
+                    BackgroundManager.shared.saveBrightness(val, applyToCurrentBackground: false)
                     self?.applyPreviewBrightness(val)
                 }),
                 ("music_text", CGFloat(AudioManager.shared.musicVolume), { val in AudioManager.shared.musicVolume = Float(val) }),
@@ -226,14 +226,32 @@ final class SettingsScene: SKScene {
         addPreviewGate(to: root, position: CGPoint(x: 400, y: PreviewLayout.bottomGateY), text: "-10")
         addPreviewGate(to: root, position: CGPoint(x: 690, y: PreviewLayout.topGateY), text: "×3")
 
+        let previewPlayerPosition = CGPoint(x: 116, y: PreviewLayout.playerY)
+        let previewPlayerSize = CGSize(width: 136, height: 106)
+        let previewPlayerScale = previewPlayerSize.height / PlayerEntity.Layout.visualSize.height
+        let previewPowerOffset = CGPoint(
+            x: PlayerEntity.Layout.visualSize.width * 0.3 * previewPlayerScale,
+            y: (PlayerEntity.Layout.visualHalfHeight + 15) * previewPlayerScale
+        )
+
         addPreviewSprite(
             "joy_1",
             to: root,
-            position: CGPoint(x: 116, y: PreviewLayout.playerY),
-            size: CGSize(width: 136, height: 106),
+            position: previewPlayerPosition,
+            size: previewPlayerSize,
             zPosition: 10
         )
-        addPreviewLabel("160", to: root, position: CGPoint(x: 126, y: PreviewLayout.playerY + 72), fontSize: 17, color: .red, zPosition: 12)
+        addPreviewLabel(
+            "160",
+            to: root,
+            position: CGPoint(
+                x: previewPlayerPosition.x + previewPowerOffset.x,
+                y: previewPlayerPosition.y + previewPowerOffset.y
+            ),
+            fontSize: 17,
+            color: .red,
+            zPosition: 12
+        )
 
         let bulletPositions = [202, 270, 338, 506, 574, 642, 710]
         for x in bulletPositions {
@@ -310,7 +328,7 @@ final class SettingsScene: SKScene {
             anchorPoint: CGPoint(x: 0.5, y: 0)
         )
 
-        addPreviewLabel(hpText, to: root, position: CGPoint(x: position.x, y: position.y + 70), fontSize: 12, color: .white, zPosition: 12)
+        addPreviewLabel(hpText, to: root, position: CGPoint(x: position.x, y: position.y + 70), fontSize: 12, color: .red, zPosition: 12)
 
         let barBackground = SKSpriteNode(color: .black, size: CGSize(width: 34, height: 5))
         barBackground.position = CGPoint(x: position.x, y: position.y + 62)
